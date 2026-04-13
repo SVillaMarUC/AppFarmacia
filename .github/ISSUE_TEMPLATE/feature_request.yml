@@ -1,0 +1,30 @@
+name: Feature request
+description: Propone una nueva funcionalidad o mejora
+labels:
+  - enhancement
+body:
+  - type: textarea
+    attributes:
+      label: Problema a resolver
+      description: Que limitacion actual quieres resolver
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Solucion propuesta
+      description: Describe la funcionalidad ideal
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Alcance
+      description: Que modulos o roles impacta (afiliado, despachador, etc.)
+
+  - type: textarea
+    attributes:
+      label: Criterios de aceptacion
+      placeholder: |
+        - [ ] Criterio 1
+        - [ ] Criterio 2
