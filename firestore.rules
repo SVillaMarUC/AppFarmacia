@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function esAdmin() {
+      return autenticado() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'administrador';
+    }
+
+    function esDespachador() {
+      return autenticado() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'despachador';
+    }
+
+    function esDomiciliario() {
+      return autenticado() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'domiciliario';
+    }
+
+    function esAfiliado() {
+      return autenticado() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'afiliado';
+    }
+
+    function pedidoActivoPerteneceAfiliado(pedidoId, domiciliarioUid) {
+      return get(/databases/$(database)/documents/pedidos/$(pedidoId)).data.usuarioId == request.auth.uid &&
+        get(/databases/$(database)/documents/pedidos/$(pedidoId)).data.domiciliarioId == domiciliarioUid &&
+        get(/databases/$(database)/documents/pedidos/$(pedidoId)).data.estado == 'en_camino';
+    }
+
+    function soloCambioEstadoPedido() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly(['estado']);
+    }
+
+    match /usuarios/{uid} {
+      allow read: if autenticado() && (request.auth.uid == uid || esAdmin());
+      allow create: if autenticado() && request.auth.uid == uid;
+      allow update: if autenticado() && (request.auth.uid == uid || esAdmin());
+      allow delete: if esAdmin();
+    }
+
+    match /pedidos/{pedidoId} {
+      allow create: if esAfiliado() && request.resource.data.usuarioId == request.auth.uid;
+      allow read: if autenticado() && (
+        resource.data.usuarioId == request.auth.uid ||
+        (esDomiciliario() && resource.data.domiciliarioId == request.auth.uid) ||
+        esDespachador() ||
+        esAdmin()
+      );
+      allow update: if autenticado() && (
+        (
+          esDomiciliario() &&
+          resource.data.domiciliarioId == request.auth.uid &&
+          soloCambioEstadoPedido() &&
+          request.resource.data.estado == 'entregado'
+        ) ||
+        (
+          esDespachador() &&
+          soloCambioEstadoPedido() &&
+          request.resource.data.estado in ['en_preparacion', 'listo', 'en_camino']
+        ) ||
+        esAdmin()
+      );
+      allow delete: if esAdmin();
+    }
+
+    match /inventario/{itemId} {
+      allow read: if autenticado() && (esDespachador() || esAdmin());
+      allow write: if autenticado() && (esDespachador() || esAdmin());
+    }
+
+    match /ubicacionesDomiciliarios/{uid} {
+      allow read: if autenticado() && (
+        request.auth.uid == uid ||
+        esAdmin() ||
+        esDespachador() ||
+        (
+          esAfiliado() &&
+          resource.data.pedidoActivoId is string &&
+          pedidoActivoPerteneceAfiliado(resource.data.pedidoActivoId, uid)
+        )
+      );
+      allow write: if autenticado() && (
+        request.auth.uid == uid ||
+        esAdmin() ||
+        esDespachador()
+      );
+    }
+
+    match /reportes/{reporteId} {
+      allow read: if autenticado() && esAdmin();
+      allow write: if autenticado() && esAdmin();
+    }
+
+    match /pqrs/{pqrsId} {
+      allow create: if autenticado() && request.resource.data.usuarioId == request.auth.uid;
+      allow read: if autenticado() && (
+        resource.data.usuarioId == request.auth.uid ||
+        esAdmin()
+      );
+      allow update: if autenticado() && esAdmin();
+      allow delete: if autenticado() && esAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
