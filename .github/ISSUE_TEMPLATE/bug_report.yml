@@ -1,0 +1,44 @@
+name: Bug report
+description: Reporta un error funcional o tecnico
+labels:
+  - bug
+body:
+  - type: textarea
+    attributes:
+      label: Descripcion
+      description: Que paso y que esperabas que pasara
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Pasos para reproducir
+      description: Lista los pasos exactos
+      placeholder: |
+        1. Ir a...
+        2. Iniciar sesion como...
+        3. Ver error...
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Resultado actual
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Resultado esperado
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Plataforma
+      description: Android, iOS, Web, Expo Go, build preview, etc.
+
+  - type: textarea
+    attributes:
+      label: Evidencia
+      description: Logs, capturas o videos
