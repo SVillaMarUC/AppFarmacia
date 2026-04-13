@@ -1,0 +1,49 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function rolUsuario() {
+      return autenticado()
+        ? firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.rol
+        : null;
+    }
+
+    function esAdmin() {
+      return rolUsuario() == 'administrador';
+    }
+
+    function esDespachador() {
+      return rolUsuario() == 'despachador';
+    }
+
+    function esDomiciliario() {
+      return rolUsuario() == 'domiciliario';
+    }
+
+    function esAfiliado() {
+      return rolUsuario() == 'afiliado';
+    }
+
+    match /recetas/{uid}/{fileName} {
+      allow write: if autenticado() && request.auth.uid == uid && esAfiliado();
+      allow read: if autenticado() && (
+        request.auth.uid == uid ||
+        esAdmin() ||
+        esDespachador() ||
+        esDomiciliario()
+      );
+    }
+
+    match /inventario-ajustes/{itemId}/{fileName} {
+      allow write: if autenticado() && (esAdmin() || esDespachador());
+      allow read: if autenticado() && (esAdmin() || esDespachador());
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
