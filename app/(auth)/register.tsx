@@ -12,6 +12,7 @@ import { authService } from '@/services/firebase/auth.service';
 
 const schema = z.object({
   cedula: z.string().min(6, 'La cédula es obligatoria.'),
+  email: z.string().email('Correo inválido.'),
   nombre: z.string().min(3, 'Nombre inválido.'),
   fechaNacimiento: z.string().min(8, 'Fecha obligatoria (YYYY-MM-DD).'),
   genero: z.string().min(1, 'Selecciona un género.'),
@@ -23,7 +24,6 @@ const schema = z.object({
   contactoParentesco: z.string().min(2, 'Parentesco obligatorio.'),
   contactoTelefono: z.string().min(7, 'Teléfono de contacto inválido.'),
   contrasena: z.string().min(6, 'La contraseña debe tener mínimo 6 caracteres.'),
-  pinNumerico: z.string().regex(/^\d{4}$/, 'El PIN debe ser numérico de 4 dígitos.'),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -42,6 +42,7 @@ export default function RegisterScreen() {
     resolver: zodResolver(schema),
     defaultValues: {
       cedula: '',
+      email: '',
       nombre: '',
       fechaNacimiento: '',
       genero: '',
@@ -53,7 +54,6 @@ export default function RegisterScreen() {
       contactoParentesco: '',
       contactoTelefono: '',
       contrasena: '',
-      pinNumerico: '',
     },
   });
 
@@ -77,8 +77,9 @@ export default function RegisterScreen() {
       setLoading(true);
       const fecha = new Date(data.fechaNacimiento);
 
-      await authService.registrarUsuario(data.cedula, data.contrasena, {
+      await authService.registrarUsuario(data.cedula, data.email, data.contrasena, {
         cedula: data.cedula,
+        email: data.email,
         nombre: data.nombre,
         fechaNacimiento: fecha,
         genero: data.genero,
@@ -101,7 +102,6 @@ export default function RegisterScreen() {
         },
         esPrioritario: false,
         rol: 'afiliado',
-        pinNumerico: data.pinNumerico,
       });
 
       Alert.alert('Registro exitoso', 'Tu cuenta fue creada. Ahora puedes iniciar sesión.');
@@ -125,6 +125,7 @@ export default function RegisterScreen() {
           <View style={styles.form}>
             {([
               ['cedula', 'Cédula', 'numeric'],
+              ['email', 'Correo electrónico', 'email-address'],
               ['nombre', 'Nombre completo', 'default'],
               ['fechaNacimiento', 'Fecha nacimiento (YYYY-MM-DD)', 'default'],
               ['genero', 'Género', 'default'],
@@ -136,7 +137,6 @@ export default function RegisterScreen() {
               ['contactoParentesco', 'Contacto emergencia - Parentesco', 'default'],
               ['contactoTelefono', 'Contacto emergencia - Teléfono', 'phone-pad'],
               ['contrasena', 'Contraseña', 'default'],
-              ['pinNumerico', 'PIN numérico (4 dígitos)', 'numeric'],
             ] as const).map(([name, label, keyboardType]) => (
               <Controller
                 key={name}
@@ -147,9 +147,8 @@ export default function RegisterScreen() {
                     label={label}
                     value={value}
                     onChangeText={onChange}
-                    keyboardType={keyboardType as 'default' | 'numeric' | 'phone-pad'}
+                    keyboardType={keyboardType as 'default' | 'numeric' | 'phone-pad' | 'email-address'}
                     secureTextEntry={name === 'contrasena'}
-                    maxLength={name === 'pinNumerico' ? 4 : undefined}
                     error={errors[name]?.message}
                   />
                 )}

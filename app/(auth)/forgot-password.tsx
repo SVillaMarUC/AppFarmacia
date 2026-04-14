@@ -7,13 +7,13 @@ import { Screen } from '@/components/ui/Screen';
 import { authService } from '@/services/firebase/auth.service';
 
 export default function ForgotPasswordScreen() {
-  const [cedula, setCedula] = useState('');
+  const [identificador, setIdentificador] = useState('');
   const [loading, setLoading] = useState(false);
 
   const onRecover = async () => {
     try {
       setLoading(true);
-      await authService.enviarRecuperacion(cedula);
+      await authService.enviarRecuperacion(identificador);
       Alert.alert('Recuperación enviada', 'Revisa tu correo asociado. Si tu EPS tiene canal SMS, lo recibirás también.');
     } catch (error) {
       Alert.alert('Error', 'No se pudo procesar la recuperación.');
@@ -29,8 +29,13 @@ export default function ForgotPasswordScreen() {
           <View style={styles.content}>
             <Text style={styles.kicker}>Acceso seguro</Text>
             <Text style={styles.titulo}>Recuperar contraseña</Text>
-            <Text style={styles.descripcion}>Ingresa tu cédula para enviar instrucciones de recuperación.</Text>
-            <Input label="Cédula" value={cedula} onChangeText={setCedula} keyboardType="numeric" />
+            <Text style={styles.descripcion}>Ingresa tu cédula o correo para enviar instrucciones de recuperación.</Text>
+            <Input
+              label="Cédula o correo"
+              value={identificador}
+              onChangeText={setIdentificador}
+              keyboardType="default"
+            />
             <Button texto="Enviar recuperación" onPress={onRecover} loading={loading} />
           </View>
         </Card>
