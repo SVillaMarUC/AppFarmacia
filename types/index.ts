@@ -25,6 +25,7 @@ export interface Medicamento {
 export interface Usuario {
   uid: string;
   cedula: string;
+  email?: string;
   nombre: string;
   fechaNacimiento: Date;
   genero: string;
@@ -36,7 +37,6 @@ export interface Usuario {
   tipoPrioridad?: 'adulto_mayor' | 'discapacidad' | 'embarazo';
   rol: 'afiliado' | 'administrador' | 'domiciliario' | 'despachador';
   creadoEn: Timestamp;
-  pinNumerico?: string;
 }
 
 export interface Pedido {

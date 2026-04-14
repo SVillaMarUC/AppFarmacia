@@ -46,7 +46,6 @@ const reducer = (state: AuthState, action: AuthAction): AuthState => {
 
 type AuthContextValue = AuthState & {
   login: (cedula: string, contrasena: string) => Promise<void>;
-  loginConPin: (cedula: string, pin: string) => Promise<void>;
   logout: () => Promise<void>;
   recargarPerfil: () => Promise<void>;
 };
@@ -100,18 +99,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           dispatch({ type: 'SET_SESSION', payload: { firebaseUser: user, perfil } });
         } catch (error) {
           dispatch({ type: 'SET_ERROR', payload: 'Credenciales inválidas.' });
-          throw error;
-        }
-      },
-      loginConPin: async (cedula: string, pin: string) => {
-        try {
-          dispatch({ type: 'START_LOADING' });
-          const user = await authService.iniciarSesionConPin(cedula, pin);
-          const perfil = await firestoreService.obtenerUsuario(user.uid);
-          dispatch({ type: 'SET_SESSION', payload: { firebaseUser: user, perfil } });
-        } catch (error) {
-          const mensaje = error instanceof Error ? error.message : 'No fue posible iniciar sesión con PIN.';
-          dispatch({ type: 'SET_ERROR', payload: mensaje });
           throw error;
         }
       },

@@ -6,9 +6,14 @@ export default function DespachadorLayout() {
     <RoleGate role="despachador">
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: '#eef4f8' },
+          headerStyle: { backgroundColor: '#0f766e' },
           headerShadowVisible: false,
-          headerTintColor: '#0f172a',
+          headerTintColor: '#ffffff',
+          headerTitleAlign: 'center',
+          headerTitleStyle: {
+            color: '#ffffff',
+            fontWeight: '700',
+          },
           contentStyle: { backgroundColor: '#eef4f8' },
         }}
       >
