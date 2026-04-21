@@ -17,7 +17,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "55.0.14",
-    "expo-constants": "~55.0.13",
+    "expo-constants": "~55.0.15",
     "expo-image-picker": "~55.0.18",
     "expo-linking": "~55.0.12",
     "expo-location": "~55.1.8",
