@@ -157,7 +157,6 @@ export default function RegisterScreen() {
                     value={value}
                     onChangeText={name === 'cedula' ? (text) => onChange(text.replace(/\D/g, '')) : onChange}
                     keyboardType={keyboardType as 'default' | 'numeric' | 'phone-pad' | 'email-address'}
-                    secureTextEntry={name === 'contrasena'}
                     maxLength={name === 'cedula' ? 10 : undefined}
                     error={errors[name]?.message}
                   />
