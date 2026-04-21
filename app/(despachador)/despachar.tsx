@@ -37,7 +37,7 @@ export default function DespacharScreen() {
     const unsubDomiciliarios = onSnapshot(
       qDomiciliarios,
       (snapshot) => {
-        const data = snapshot.docs.map((d) => ({ uid: d.id, ...(d.data() as Usuario) }));
+        const data = snapshot.docs.map((d) => ({ ...(d.data() as Omit<Usuario, 'uid'>), uid: d.id }));
         setDomiciliariosRaw(
           data.map((item) => ({
             uid: item.uid,

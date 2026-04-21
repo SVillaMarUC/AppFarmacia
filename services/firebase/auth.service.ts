@@ -45,6 +45,22 @@ const resolveEmailByCedula = async (cedula: string | number): Promise<string | n
   return normalizeIdentifier(data.email);
 };
 
+const resolveCandidateEmails = async (cedulaOrEmail: string): Promise<string[]> => {
+  const candidates = new Set<string>();
+  const normalizedInput = normalizeIdentifier(cedulaOrEmail);
+
+  if (normalizedInput.includes('@')) {
+    candidates.add(normalizedInput);
+  }
+
+  const emailByCedula = await resolveEmailByCedula(cedulaOrEmail);
+  if (emailByCedula) {
+    candidates.add(emailByCedula);
+  }
+
+  return Array.from(candidates);
+};
+
 const mapRegistroError = (error: unknown): string => {
   const code = (error as { code?: string } | null)?.code;
   const message = (error as { message?: string } | null)?.message;
