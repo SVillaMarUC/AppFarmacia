@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Redirect, Slot, useSegments } from 'expo-router';
+import { Slot, usePathname, useRouter, useSegments } from 'expo-router';
 import { AuthProvider } from '@/context/AuthContext';
 import { PedidoProvider } from '@/context/PedidoContext';
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -9,20 +9,10 @@ import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
 const Guard = () => {
   const { loading, firebaseUser, perfil } = useAuth();
   const segments = useSegments();
-
-  if (loading) {
-    return <LoadingOverlay texto="Validando sesión..." />;
-  }
+  const pathname = usePathname();
+  const router = useRouter();
 
   const enAuth = segments[0] === '(auth)';
-
-  if (!firebaseUser) {
-    return enAuth ? <Slot /> : <Redirect href="/(auth)/login" />;
-  }
-
-  if (!perfil) {
-    return <Redirect href="/(auth)/login" />;
-  }
 
   const destinoPorRol: Record<string, '/(afiliado)/inicio' | '/(administrador)/dashboard' | '/(domiciliario)/pedidos-asignados' | '/(despachador)/inventario'> = {
     afiliado: '/(afiliado)/inicio',
@@ -31,10 +21,42 @@ const Guard = () => {
     despachador: '/(despachador)/inventario',
   };
 
-  const destino = destinoPorRol[perfil.rol] ?? '/(auth)/login';
+  const destino = perfil ? destinoPorRol[perfil.rol] ?? '/(auth)/login' : '/(auth)/login';
 
-  if (enAuth) {
-    return <Redirect href={destino} />;
+  const redirectTarget = (() => {
+    if (loading) {
+      return null;
+    }
+    if (!firebaseUser) {
+      return enAuth ? null : '/(auth)/login';
+    }
+    if (!perfil) {
+      return '/(auth)/login';
+    }
+    if (enAuth) {
+      return destino;
+    }
+    return null;
+  })();
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+    if (!redirectTarget) {
+      return;
+    }
+    if (pathname !== redirectTarget) {
+      router.replace(redirectTarget);
+    }
+  }, [loading, redirectTarget, pathname, router]);
+
+  if (loading) {
+    return <LoadingOverlay texto="Validando sesión..." />;
+  }
+
+  if (redirectTarget && pathname !== redirectTarget) {
+    return <LoadingOverlay texto="Redirigiendo..." />;
   }
 
   return <Slot />;

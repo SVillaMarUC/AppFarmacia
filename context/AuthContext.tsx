@@ -98,7 +98,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const perfil = await firestoreService.obtenerUsuario(user.uid);
           dispatch({ type: 'SET_SESSION', payload: { firebaseUser: user, perfil } });
         } catch (error) {
-          dispatch({ type: 'SET_ERROR', payload: 'Credenciales inválidas.' });
+          const mensaje = error instanceof Error ? error.message : 'No se pudo iniciar sesión.';
+          dispatch({ type: 'SET_ERROR', payload: mensaje });
           throw error;
         }
       },

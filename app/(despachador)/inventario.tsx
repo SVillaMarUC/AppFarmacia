@@ -1,177 +1,254 @@
-import { useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { StockIndicator } from '@/components/shared/StockIndicator';
-import { Card } from '@/components/ui/Card';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { addDoc, collection, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
-import { firestoreService } from '@/services/firebase/firestore.service';
-import { storageService } from '@/services/firebase/storage.service';
-import type { ItemInventario } from '@/types';
+import { db } from '@/services/firebase/config';
+
+type InventarioItem = {
+  id: string;
+  nombre: string;
+  cantidad: number;
+  unidad?: string;
+  descripcion?: string;
+};
+
+type FormInventario = {
+  nombre: string;
+  cantidad: string;
+  unidad: string;
+  descripcion: string;
+};
+
+const initialForm: FormInventario = {
+  nombre: '',
+  cantidad: '',
+  unidad: '',
+  descripcion: '',
+};
 
 export default function InventarioScreen() {
-  const [items, setItems] = useState<ItemInventario[]>([]);
-  const [nombre, setNombre] = useState('');
-  const [lote, setLote] = useState('');
-  const [cantidad, setCantidad] = useState('');
-  const [vencimiento, setVencimiento] = useState('');
-  const [motivoAjuste, setMotivoAjuste] = useState('');
-  const [fotoAjusteUri, setFotoAjusteUri] = useState<string | null>(null);
-
-  const cargar = async () => {
-    try {
-      const data = await firestoreService.obtenerInventario();
-      setItems(data);
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo cargar inventario.');
-    }
-  };
+  const [search, setSearch] = useState('');
+  const [items, setItems] = useState<InventarioItem[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormInventario>(initialForm);
 
   useEffect(() => {
-    void cargar();
+    const unsub = onSnapshot(
+      collection(db, 'inventario'),
+      (snapshot) => {
+        setItems(
+          snapshot.docs.map((d) => {
+            const data = d.data() as Record<string, unknown>;
+            return {
+              id: d.id,
+              nombre: String(data.nombre ?? ''),
+              cantidad: Number(data.cantidad ?? data.stock ?? 0),
+              unidad: data.unidad ? String(data.unidad) : '',
+              descripcion: data.descripcion ? String(data.descripcion) : '',
+            };
+          })
+        );
+      },
+      () => Alert.alert('Error', 'No fue posible cargar inventario.')
+    );
+
+    return unsub;
   }, []);
 
-  const seleccionarFoto = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.5 });
-      if (!result.canceled) {
-        setFotoAjusteUri(result.assets[0].uri);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo adjuntar foto.');
-    }
+  const filtrados = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((item) => item.nombre.toLowerCase().includes(q));
+  }, [items, search]);
+
+  const abrirAgregar = () => {
+    setEditandoId(null);
+    setForm(initialForm);
+    setModalVisible(true);
   };
 
-  const agregarStock = async () => {
+  const abrirEditar = (item: InventarioItem) => {
+    setEditandoId(item.id);
+    setForm({
+      nombre: item.nombre,
+      cantidad: String(item.cantidad),
+      unidad: item.unidad ?? '',
+      descripcion: item.descripcion ?? '',
+    });
+    setModalVisible(true);
+  };
+
+  const guardar = async () => {
+    if (!form.nombre.trim() || !form.cantidad.trim()) {
+      Alert.alert('Datos requeridos', 'Nombre y cantidad son obligatorios.');
+      return;
+    }
+
+    const payload = {
+      nombre: form.nombre.trim(),
+      cantidad: Number(form.cantidad.replace(/\D/g, '') || '0'),
+      unidad: form.unidad.trim(),
+      descripcion: form.descripcion.trim(),
+    };
+
     try {
-      const id = `${nombre.toLowerCase().replace(/\s/g, '-')}-${Date.now()}`;
-      const fotoAjusteUrl = fotoAjusteUri ? await storageService.subirFotoAjuste(fotoAjusteUri, id) : undefined;
-
-      await firestoreService.guardarInventario({
-        id,
-        nombre,
-        categoria: 'General',
-        stock: Number(cantidad),
-        stockMinimo: 20,
-        lote,
-        fechaVencimiento: new Date(vencimiento),
-        proveedor: 'Proveedor EPS',
-        motivoAjuste,
-        fotoAjusteUrl,
-      });
-
-      Alert.alert('Inventario actualizado', 'Entrada registrada correctamente.');
-      setNombre('');
-      setLote('');
-      setCantidad('');
-      setVencimiento('');
-      setMotivoAjuste('');
-      setFotoAjusteUri(null);
-      void cargar();
+      if (editandoId) {
+        await updateDoc(doc(db, 'inventario', editandoId), payload);
+      } else {
+        await addDoc(collection(db, 'inventario'), payload);
+      }
+      setModalVisible(false);
+      setForm(initialForm);
     } catch (error) {
-      Alert.alert('Error', 'No fue posible registrar el stock.');
+      Alert.alert('Error', 'No fue posible guardar el ítem.');
     }
   };
 
   return (
     <Screen>
       <View style={styles.container}>
-        <View style={styles.hero}>
-          <Text style={styles.kicker}>Operación y abastecimiento</Text>
-          <Text style={styles.titulo}>Inventario de medicamentos</Text>
-          <Text style={styles.subtitulo}>Supervisa stock y registra movimientos con una vista más limpia y ordenada.</Text>
-        </View>
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Buscar medicamento..."
+          placeholderTextColor="#94a3b8"
+        />
 
-        <Card>
-          <FlatList
-            data={items}
-            keyExtractor={(item) => item.id}
-            style={styles.lista}
-            renderItem={({ item }) => (
+        <FlatList
+          data={filtrados}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <Pressable onPress={() => abrirEditar(item)}>
               <Card>
-                <View style={styles.item}>
-                  <View style={styles.itemHeader}>
-                    <Text style={styles.nombre}>{item.nombre}</Text>
-                    <StockIndicator stock={item.stock} stockMinimo={item.stockMinimo} />
+                <View style={styles.itemRow}>
+                  <View>
+                    <Text style={styles.itemNombre}>{item.nombre}</Text>
+                    <Text style={styles.itemDetalle}>
+                      {item.cantidad} {item.unidad || ''}
+                    </Text>
                   </View>
-                  <Text style={styles.detalle}>Stock: {item.stock}</Text>
-                  <Text style={styles.detalle}>Lote: {item.lote}</Text>
+                  {item.cantidad < 10 ? <Text style={styles.stockBajo}>Stock bajo</Text> : null}
                 </View>
               </Card>
-            )}
-            ListEmptyComponent={<Text style={styles.detalle}>No hay ítems de inventario.</Text>}
-          />
-        </Card>
+            </Pressable>
+          )}
+          ListEmptyComponent={<Text style={styles.itemDetalle}>Sin resultados.</Text>}
+        />
 
-        <Card>
-          <View style={styles.form}>
-            <Text style={styles.subtituloSeccion}>Agregar/ajustar stock</Text>
-            <Input label="Medicamento" value={nombre} onChangeText={setNombre} />
-            <Input label="Lote" value={lote} onChangeText={setLote} />
-            <Input label="Cantidad" value={cantidad} onChangeText={setCantidad} keyboardType="numeric" />
-            <Input label="Vencimiento (YYYY-MM-DD)" value={vencimiento} onChangeText={setVencimiento} />
-            <Input label="Motivo ajuste" value={motivoAjuste} onChangeText={setMotivoAjuste} />
-            <Button texto="Adjuntar foto (opcional)" onPress={seleccionarFoto} variant="secundario" />
-            <Button texto="Guardar movimiento" onPress={agregarStock} />
-          </View>
-        </Card>
+        <Pressable style={styles.fab} onPress={abrirAgregar}>
+          <Text style={styles.fabText}>+</Text>
+        </Pressable>
       </View>
+
+      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{editandoId ? 'Editar ítem' : 'Nuevo ítem'}</Text>
+            <TextInput
+              style={styles.field}
+              value={form.nombre}
+              onChangeText={(v) => setForm((prev) => ({ ...prev, nombre: v }))}
+              placeholder="Nombre"
+              placeholderTextColor="#94a3b8"
+            />
+            <TextInput
+              style={styles.field}
+              value={form.cantidad}
+              onChangeText={(v) => setForm((prev) => ({ ...prev, cantidad: v }))}
+              placeholder="Cantidad"
+              keyboardType="numeric"
+              placeholderTextColor="#94a3b8"
+            />
+            <TextInput
+              style={styles.field}
+              value={form.unidad}
+              onChangeText={(v) => setForm((prev) => ({ ...prev, unidad: v }))}
+              placeholder="Unidad (opcional)"
+              placeholderTextColor="#94a3b8"
+            />
+            <TextInput
+              style={[styles.field, styles.fieldArea]}
+              value={form.descripcion}
+              onChangeText={(v) => setForm((prev) => ({ ...prev, descripcion: v }))}
+              placeholder="Descripción (opcional)"
+              multiline
+              placeholderTextColor="#94a3b8"
+            />
+            <Button texto="Guardar" onPress={guardar} />
+            <Button texto="Cancelar" onPress={() => setModalVisible(false)} variant="secundario" />
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    gap: 14,
+  container: { flex: 1, padding: 16 },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#dbe4ee',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#0f172a',
+    marginBottom: 12,
+    backgroundColor: '#ffffff',
   },
-  hero: {
-    gap: 6,
-  },
-  kicker: {
-    color: '#0f766e',
+  listContent: { gap: 10, paddingBottom: 110 },
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  itemNombre: { color: '#0f172a', fontWeight: '700', fontSize: 14 },
+  itemDetalle: { color: '#334155', fontSize: 14, lineHeight: 20 },
+  stockBajo: {
+    color: '#b91c1c',
+    borderWidth: 1,
+    borderColor: '#b91c1c',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
     fontSize: 12,
   },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.4,
-  },
-  subtitulo: {
-    color: '#334155',
-    lineHeight: 20,
-  },
-  subtituloSeccion: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  lista: {
-    maxHeight: 280,
-  },
-  item: {
-    gap: 6,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#0f766e',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
   },
-  nombre: {
+  fabText: { color: '#ffffff', fontSize: 28, fontWeight: '700', marginTop: -2 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.35)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#dbe4ee',
+    padding: 14,
+    gap: 10,
+  },
+  modalTitle: { color: '#0f172a', fontWeight: '800', fontSize: 18 },
+  field: {
+    borderWidth: 1,
+    borderColor: '#dbe4ee',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     color: '#0f172a',
-    fontWeight: '700',
+    backgroundColor: '#ffffff',
   },
-  detalle: {
-    color: '#334155',
-  },
-  form: {
-    gap: 12,
-  },
+  fieldArea: { minHeight: 80, textAlignVertical: 'top' },
 });

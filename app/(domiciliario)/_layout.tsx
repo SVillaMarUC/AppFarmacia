@@ -1,25 +1,56 @@
-import { Stack } from 'expo-router';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { RoleGate } from '@/components/auth/RoleGate';
 
 export default function DomiciliarioLayout() {
   return (
     <RoleGate role="domiciliario">
-      <Stack
+      <Tabs
         screenOptions={{
           headerStyle: { backgroundColor: '#0f766e' },
           headerShadowVisible: false,
           headerTintColor: '#ffffff',
           headerTitleAlign: 'center',
-          headerTitleStyle: {
-            color: '#ffffff',
-            fontWeight: '700',
+          headerTitleStyle: { color: '#ffffff', fontWeight: '700' },
+          tabBarActiveTintColor: '#0f766e',
+          tabBarInactiveTintColor: '#64748b',
+          tabBarStyle: {
+            backgroundColor: '#ffffff',
+            borderTopColor: '#dbe4ee',
+            height: 62,
+            paddingBottom: 8,
+            paddingTop: 6,
           },
-          contentStyle: { backgroundColor: '#eef4f8' },
         }}
       >
-        <Stack.Screen name="pedidos-asignados" options={{ title: 'Pedidos asignados' }} />
-        <Stack.Screen name="navegacion" options={{ title: 'Navegación' }} />
-      </Stack>
+        <Tabs.Screen
+          name="pedidos-asignados"
+          options={{
+            title: 'Pedidos',
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'cube' : 'cube-outline'} color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="navegacion"
+          options={{
+            title: 'Navegación',
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'navigate' : 'navigate-outline'} color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="perfil"
+          options={{
+            title: 'Perfil',
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size} />
+            ),
+          }}
+        />
+      </Tabs>
     </RoleGate>
   );
 }

@@ -1,17 +1,20 @@
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Screen } from '@/components/ui/Screen';
+import { DEPARTAMENTOS_COLOMBIA } from '@/constants/departamentosColombia';
 import { useLocation } from '@/hooks/useLocation';
 import { authService } from '@/services/firebase/auth.service';
 
 const schema = z.object({
-  cedula: z.string().min(6, 'La cédula es obligatoria.'),
+  cedula: z
+    .string()
+    .regex(/^\d{7,10}$/, 'La cédula debe tener entre 7 y 10 dígitos.'),
   email: z.string().email('Correo inválido.'),
   nombre: z.string().min(3, 'Nombre inválido.'),
   fechaNacimiento: z.string().min(8, 'Fecha obligatoria (YYYY-MM-DD).'),
@@ -19,7 +22,6 @@ const schema = z.object({
   eps: z.string().min(2, 'EPS obligatoria.'),
   telefono: z.string().min(7, 'Teléfono inválido.'),
   direccion: z.string().min(6, 'Dirección obligatoria.'),
-  ciudad: z.string().min(3, 'Ciudad obligatoria.'),
   contactoNombre: z.string().min(3, 'Nombre de contacto obligatorio.'),
   contactoParentesco: z.string().min(2, 'Parentesco obligatorio.'),
   contactoTelefono: z.string().min(7, 'Teléfono de contacto inválido.'),
@@ -32,7 +34,13 @@ export default function RegisterScreen() {
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [departamentoSeleccionado, setDepartamentoSeleccionado] = useState('');
+  const [mostrarListaDepartamento, setMostrarListaDepartamento] = useState(false);
   const { getCurrentLocation, loading: loadingUbicacion } = useLocation();
+
+  const departamentos = useMemo(() => {
+    return [...DEPARTAMENTOS_COLOMBIA].sort((a, b) => a.localeCompare(b, 'es'));
+  }, []);
 
   const {
     control,
@@ -49,7 +57,6 @@ export default function RegisterScreen() {
       eps: '',
       telefono: '',
       direccion: '',
-      ciudad: 'Bogotá',
       contactoNombre: '',
       contactoParentesco: '',
       contactoTelefono: '',
@@ -73,22 +80,29 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!departamentoSeleccionado) {
+      Alert.alert('Departamento requerido', 'Debes seleccionar un departamento de la lista');
+      return;
+    }
+
     try {
       setLoading(true);
       const fecha = new Date(data.fechaNacimiento);
+      const cedulaNumerica = Number(data.cedula);
 
-      await authService.registrarUsuario(data.cedula, data.email, data.contrasena, {
-        cedula: data.cedula,
+      await authService.registrarUsuario(cedulaNumerica, data.email, data.contrasena, {
+        cedula: cedulaNumerica,
         email: data.email,
         nombre: data.nombre,
         fechaNacimiento: fecha,
         genero: data.genero,
         eps: data.eps,
+        ciudad: departamentoSeleccionado,
         direcciones: [
           {
             etiqueta: 'Principal',
             direccion: data.direccion,
-            ciudad: data.ciudad,
+            ciudad: departamentoSeleccionado,
             latitud: coords?.lat ?? 4.60971,
             longitud: coords?.lon ?? -74.08175,
             principal: true,
@@ -106,7 +120,8 @@ export default function RegisterScreen() {
 
       Alert.alert('Registro exitoso', 'Tu cuenta fue creada. Ahora puedes iniciar sesión.');
     } catch (error) {
-      Alert.alert('Error', 'No se pudo completar el registro.');
+      const mensaje = error instanceof Error ? error.message : 'No se pudo completar el registro.';
+      Alert.alert('Error', mensaje);
     } finally {
       setLoading(false);
     }
@@ -131,11 +146,52 @@ export default function RegisterScreen() {
               ['genero', 'Género', 'default'],
               ['eps', 'EPS', 'default'],
               ['telefono', 'Teléfono', 'phone-pad'],
-              ['direccion', 'Dirección', 'default'],
-              ['ciudad', 'Ciudad', 'default'],
+            ] as const).map(([name, label, keyboardType]) => (
+              <Controller
+                key={name}
+                control={control}
+                name={name}
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    label={label}
+                    value={value}
+                    onChangeText={name === 'cedula' ? (text) => onChange(text.replace(/\D/g, '')) : onChange}
+                    keyboardType={keyboardType as 'default' | 'numeric' | 'phone-pad' | 'email-address'}
+                    secureTextEntry={name === 'contrasena'}
+                    maxLength={name === 'cedula' ? 10 : undefined}
+                    error={errors[name]?.message}
+                  />
+                )}
+              />
+            ))}
+
+            <View style={styles.ciudadContainer}>
+              <Text style={styles.label}>Departamento</Text>
+              <TouchableOpacity style={styles.selectorCiudad} onPress={() => setMostrarListaDepartamento((prev) => !prev)}>
+                <Text style={[styles.selectorTexto, !departamentoSeleccionado && styles.selectorPlaceholder]}>
+                  {departamentoSeleccionado || 'Selecciona tu departamento'}
+                </Text>
+                <Text style={styles.selectorFlecha}>{mostrarListaDepartamento ? '▴' : '▾'}</Text>
+              </TouchableOpacity>
+
+              {departamentoSeleccionado ? (
+                <TouchableOpacity
+                  style={styles.confirmacionCiudad}
+                  onPress={() => {
+                    setDepartamentoSeleccionado('');
+                    setMostrarListaDepartamento(false);
+                  }}
+                >
+                  <Text style={styles.confirmacionTexto}>✓ {departamentoSeleccionado}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {([
               ['contactoNombre', 'Contacto emergencia - Nombre', 'default'],
               ['contactoParentesco', 'Contacto emergencia - Parentesco', 'default'],
               ['contactoTelefono', 'Contacto emergencia - Teléfono', 'phone-pad'],
+              ['direccion', 'Dirección', 'default'],
               ['contrasena', 'Contraseña', 'default'],
             ] as const).map(([name, label, keyboardType]) => (
               <Controller
@@ -166,6 +222,37 @@ export default function RegisterScreen() {
           </View>
         </Card>
       </ScrollView>
+
+      <Modal
+        visible={mostrarListaDepartamento}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMostrarListaDepartamento(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setMostrarListaDepartamento(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Selecciona tu departamento</Text>
+            <FlatList
+              data={departamentos}
+              keyExtractor={(item, index) => `${item}-${index}`}
+              style={styles.sugerenciasScroll}
+              initialNumToRender={25}
+              windowSize={10}
+              renderItem={({ item: departamento }) => (
+                <TouchableOpacity
+                  style={styles.sugerenciaItem}
+                  onPress={() => {
+                    setDepartamentoSeleccionado(departamento);
+                    setMostrarListaDepartamento(false);
+                  }}
+                >
+                  <Text style={styles.sugerenciaTexto}>{departamento}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Screen>
   );
 }
@@ -200,6 +287,86 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 12,
+  },
+  ciudadContainer: {
+    gap: 6,
+  },
+  label: {
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  selectorCiudad: {
+    borderWidth: 1,
+    borderColor: '#dbe4ee',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectorTexto: {
+    color: '#0f172a',
+    fontWeight: '600',
+    flex: 1,
+    paddingRight: 8,
+  },
+  selectorPlaceholder: {
+    color: '#94a3b8',
+    fontWeight: '500',
+  },
+  selectorFlecha: {
+    color: '#64748b',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    borderWidth: 1,
+    borderColor: '#dbe4ee',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    overflow: 'hidden',
+    maxHeight: '72%',
+  },
+  modalTitle: {
+    color: '#0f172a',
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dbe4ee',
+  },
+  sugerenciasScroll: {
+    maxHeight: 420,
+  },
+  sugerenciaItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dbe4ee',
+  },
+  sugerenciaTexto: {
+    color: '#334155',
+  },
+  confirmacionCiudad: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#f0fdfa',
+    borderRadius: 20,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  confirmacionTexto: {
+    color: '#0f766e',
+    fontWeight: '700',
   },
   terminos: {
     flexDirection: 'row',

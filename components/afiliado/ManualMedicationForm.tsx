@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Keyboard, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import type { Medicamento } from '@/types';
@@ -25,9 +25,31 @@ export const ManualMedicationForm = ({
       {medicamentos.map((med, index) => (
         <View key={`${med.nombre}-${index}`} style={styles.block}>
           <Text style={styles.title}>Medicamento {index + 1}</Text>
-          <Input label="Nombre" value={med.nombre} onChangeText={(value) => onChangeNombre(index, value)} />
-          <Input label="Dosis (opcional)" value={med.dosis ?? ''} onChangeText={(value) => onChangeDosis(index, value)} />
-          <Input label="Cantidad" value={String(med.cantidad)} onChangeText={(value) => onChangeCantidad(index, value)} keyboardType="numeric" />
+          <Input
+            label="Nombre"
+            value={med.nombre}
+            onChangeText={(value) => onChangeNombre(index, value)}
+            onSubmitEditing={() => Keyboard.dismiss()}
+            blurOnSubmit
+            returnKeyType="done"
+          />
+          <Input
+            label="Dosis (opcional)"
+            value={med.dosis ?? ''}
+            onChangeText={(value) => onChangeDosis(index, value)}
+            onSubmitEditing={() => Keyboard.dismiss()}
+            blurOnSubmit
+            returnKeyType="done"
+          />
+          <Input
+            label="Cantidad"
+            value={String(med.cantidad)}
+            onChangeText={(value) => onChangeCantidad(index, value)}
+            keyboardType="numeric"
+            onSubmitEditing={() => Keyboard.dismiss()}
+            blurOnSubmit
+            returnKeyType="done"
+          />
           {medicamentos.length > 1 ? <Button texto="Quitar" onPress={() => onRemove(index)} variant="peligro" /> : null}
         </View>
       ))}
