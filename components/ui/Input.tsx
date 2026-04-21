@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
+import type { TextInputSubmitEditingEventData, NativeSyntheticEvent } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 
 type InputProps = {
@@ -11,6 +12,9 @@ type InputProps = {
   keyboardType?: 'default' | 'numeric' | 'phone-pad' | 'email-address';
   error?: string;
   maxLength?: number;
+  onSubmitEditing?: (e: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => void;
+  blurOnSubmit?: boolean;
+  returnKeyType?: 'done' | 'next' | 'go' | 'search' | 'send';
 };
 
 export const Input = ({
@@ -22,6 +26,9 @@ export const Input = ({
   keyboardType,
   error,
   maxLength,
+  onSubmitEditing,
+  blurOnSubmit,
+  returnKeyType,
 }: InputProps) => {
   const [focused, setFocused] = useState(false);
   const { theme } = useTheme();
@@ -37,6 +44,9 @@ export const Input = ({
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         maxLength={maxLength}
+        onSubmitEditing={onSubmitEditing}
+        blurOnSubmit={blurOnSubmit}
+        returnKeyType={returnKeyType}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={[

@@ -8,6 +8,12 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 type ExtraConfig = {
+  apiKey?: string;
+  authDomain?: string;
+  projectId?: string;
+  storageBucket?: string;
+  messagingSenderId?: string;
+  appId?: string;
   firebaseApiKey?: string;
   firebaseAuthDomain?: string;
   firebaseProjectId?: string;
@@ -19,21 +25,23 @@ type ExtraConfig = {
 const extra = (Constants.expoConfig?.extra ?? {}) as ExtraConfig;
 
 const firebaseConfig = {
-  apiKey: extra.firebaseApiKey,
-  authDomain: extra.firebaseAuthDomain,
-  projectId: extra.firebaseProjectId,
-  storageBucket: extra.firebaseStorageBucket,
-  messagingSenderId: extra.firebaseMessagingSenderId,
-  appId: extra.firebaseAppId,
+  apiKey: extra.firebaseApiKey ?? extra.apiKey,
+  authDomain: extra.firebaseAuthDomain ?? extra.authDomain,
+  projectId: extra.firebaseProjectId ?? extra.projectId,
+  storageBucket: extra.firebaseStorageBucket ?? extra.storageBucket,
+  messagingSenderId: extra.firebaseMessagingSenderId ?? extra.messagingSenderId,
+  appId: extra.firebaseAppId ?? extra.appId,
 };
 
 const missingKeys = Object.entries(firebaseConfig)
   .filter(([, value]) => !value)
   .map(([key]) => key);
 
+export const isFirebaseConfigured = missingKeys.length === 0;
+
 if (missingKeys.length > 0) {
-  throw new Error(
-    `Faltan variables de Firebase en Constants.expoConfig.extra: ${missingKeys.join(', ')}. Revisa tu .env.`
+  console.warn(
+    `Faltan variables de Firebase en Constants.expoConfig.extra: ${missingKeys.join(', ')}. La app iniciara en modo degradado hasta que configures el entorno.`
   );
 }
 

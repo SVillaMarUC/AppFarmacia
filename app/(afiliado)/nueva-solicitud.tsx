@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Keyboard, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ManualMedicationForm } from '@/components/afiliado/ManualMedicationForm';
 import { Card } from '@/components/ui/Card';
@@ -14,6 +14,7 @@ import type { Direccion, Medicamento } from '@/types';
 
 export default function NuevaSolicitudScreen() {
   const { perfil } = useAuth();
+  const [paso, setPaso] = useState(1);
   const [tipoSolicitud, setTipoSolicitud] = useState<'ocr' | 'manual'>('ocr');
   const [imagenUri, setImagenUri] = useState<string | null>(null);
   const [imagenBase64, setImagenBase64] = useState<string>('');
@@ -111,6 +112,7 @@ export default function NuevaSolicitudScreen() {
         medicamentos: medicamentosValidos,
         estado: 'pendiente',
         modoEntrega,
+        ciudad: perfil?.ciudad ?? '',
         direccionEntrega,
         recetaUrl,
         recetaOCRData: {
@@ -121,6 +123,7 @@ export default function NuevaSolicitudScreen() {
       });
 
       Alert.alert('Solicitud creada', 'Tu pedido fue registrado correctamente.');
+      setPaso(1);
       setImagenUri(null);
       setImagenBase64('');
       setMedicamentos([{ nombre: '', cantidad: 1 }]);
@@ -132,8 +135,64 @@ export default function NuevaSolicitudScreen() {
     }
   };
 
+  const avanzarDesdePaso1 = () => {
+    if (tipoSolicitud === 'ocr' && !imagenUri) {
+      Alert.alert('Faltan datos', 'Debes cargar una receta.');
+      return;
+    }
+    setPaso(2);
+  };
+
+  const avanzarDesdePaso2 = () => {
+    const medicamentosValidos = medicamentos
+      .map((m) => ({ ...m, nombre: m.nombre.trim() }))
+      .filter((m) => m.nombre.length > 0);
+
+    if (!medicamentosValidos.length) {
+      Alert.alert('Medicamentos requeridos', 'Debes agregar al menos un medicamento.');
+      return;
+    }
+    setPaso(3);
+  };
+
+  const avanzarDesdePaso3 = () => {
+    if (modoEntrega === 'domicilio' && !perfil?.direcciones?.length) {
+      Alert.alert('Dirección requerida', 'Debes seleccionar una dirección para entrega a domicilio.');
+      return;
+    }
+    setPaso(4);
+  };
+
+  const getResumenTipo = () => (tipoSolicitud === 'ocr' ? 'Con receta' : 'Manual');
+  const getResumenEntrega = () => (modoEntrega === 'domicilio' ? 'A domicilio' : 'Recoger en punto');
+
+  const medicamentoResumen = medicamentos
+    .map((m) => ({ ...m, nombre: m.nombre.trim() }))
+    .filter((m) => m.nombre.length > 0)
+    .map((m) => `${m.nombre} x${m.cantidad}`)
+    .join(', ');
+
   return (
     <Screen>
+      <View style={styles.pasosHeader}>
+        {[
+          ['1', 'Tipo'],
+          ['2', 'Medicamentos'],
+          ['3', 'Entrega'],
+          ['4', 'Confirmar'],
+        ].map(([numero, label], index) => {
+          const activo = paso === index + 1;
+          return (
+            <View key={numero} style={styles.pasoItem}>
+              <View style={[styles.pasoCirculo, activo ? styles.pasoCirculoActivo : styles.pasoCirculoInactivo]}>
+                <Text style={[styles.pasoNumero, activo ? styles.pasoNumeroActivo : styles.pasoNumeroInactivo]}>{numero}</Text>
+              </View>
+              <Text style={styles.pasoLabel}>{label}</Text>
+            </View>
+          );
+        })}
+      </View>
+
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.kicker}>Solicitud digital</Text>
@@ -141,85 +200,163 @@ export default function NuevaSolicitudScreen() {
           <Text style={styles.subtitulo}>Puedes crear el pedido con receta por imagen o cargar los medicamentos manualmente.</Text>
         </View>
 
-        <Card>
-          <Text style={styles.subtituloSeccion}>Tipo de solicitud</Text>
-          <View style={styles.filaBotones}>
-            <Button texto="Con receta" onPress={() => setTipoSolicitud('ocr')} variant={tipoSolicitud === 'ocr' ? 'primario' : 'secundario'} />
-            <Button texto="Manual" onPress={() => setTipoSolicitud('manual')} variant={tipoSolicitud === 'manual' ? 'primario' : 'secundario'} />
-          </View>
-        </Card>
-
-        {tipoSolicitud === 'ocr' ? (
+        {paso === 1 ? (
           <Card>
-            <View style={styles.filaBotones}>
-              <Button texto="Tomar foto" onPress={() => seleccionarImagen(true)} />
-              <Button texto="Elegir de galería" onPress={() => seleccionarImagen(false)} variant="secundario" />
+            <Text style={styles.subtituloSeccion}>Tipo de solicitud</Text>
+            <View style={styles.toggleCardsWrap}>
+              <TouchableOpacity
+                style={[styles.toggleCard, tipoSolicitud === 'ocr' ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                onPress={() => setTipoSolicitud('ocr')}
+              >
+                <Text style={styles.toggleTitle}>Con receta</Text>
+                <Text style={styles.toggleSub}>Sube una foto de tu receta médica</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleCard, tipoSolicitud === 'manual' ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                onPress={() => setTipoSolicitud('manual')}
+              >
+                <Text style={styles.toggleTitle}>Manual</Text>
+                <Text style={styles.toggleSub}>Ingresa los medicamentos directamente</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.nota}>Si no hay Google Cloud disponible, la imagen se mantiene local y el pedido sigue funcionando.</Text>
-          </Card>
-        ) : (
-          <Card>
-            <Text style={styles.nota}>Ingresa los medicamentos manualmente cuando no tengas receta digital.</Text>
-          </Card>
-        )}
 
-        {tipoSolicitud === 'ocr' && imagenUri ? (
-          <Card>
-            <Image source={{ uri: imagenUri }} style={styles.preview} />
+            {tipoSolicitud === 'ocr' ? (
+              <View style={styles.filaBotones}>
+                <View style={styles.botonFlex}>
+                  <Button texto="Tomar foto" onPress={() => seleccionarImagen(true)} />
+                </View>
+                <View style={styles.botonFlex}>
+                  <Button texto="Elegir galería" onPress={() => seleccionarImagen(false)} variant="secundario" />
+                </View>
+              </View>
+            ) : null}
+
+            {tipoSolicitud === 'ocr' && imagenUri ? <Image source={{ uri: imagenUri }} style={styles.preview} /> : null}
+
+            <View style={styles.accionPrincipal}>
+              <Button texto="Siguiente" onPress={avanzarDesdePaso1} />
+            </View>
           </Card>
         ) : null}
 
-        <Card>
-          <Text style={styles.subtituloSeccion}>{tipoSolicitud === 'ocr' ? 'Medicamentos detectados (editable)' : 'Medicamentos (manual)'}</Text>
-          {tipoSolicitud === 'ocr' && medicamentos.length === 0 ? <Text style={styles.texto}>Sin medicamentos detectados aún.</Text> : null}
+        {paso === 2 ? (
+          <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <Card>
+              <Text style={styles.subtituloSeccion}>{tipoSolicitud === 'ocr' ? 'Medicamentos detectados (editable)' : 'Medicamentos (manual)'}</Text>
+              {tipoSolicitud === 'ocr' && medicamentos.length === 0 ? <Text style={styles.texto}>Sin medicamentos detectados aún.</Text> : null}
 
-          {tipoSolicitud === 'manual' ? (
-            <ManualMedicationForm
-              medicamentos={medicamentos}
-              onChangeNombre={actualizarMedicamento}
-              onChangeCantidad={actualizarCantidad}
-              onChangeDosis={actualizarDosis}
-              onAdd={agregarMedicamento}
-              onRemove={quitarMedicamento}
-            />
-          ) : (
+              {tipoSolicitud === 'manual' ? (
+                <ManualMedicationForm
+                  medicamentos={medicamentos}
+                  onChangeNombre={actualizarMedicamento}
+                  onChangeCantidad={actualizarCantidad}
+                  onChangeDosis={actualizarDosis}
+                  onAdd={agregarMedicamento}
+                  onRemove={quitarMedicamento}
+                />
+              ) : (
+                <View style={styles.formList}>
+                  {medicamentos.map((medicamento, index) => (
+                    <Input
+                      key={`${medicamento.nombre}-${index}`}
+                      label={`Medicamento ${index + 1}`}
+                      value={medicamento.nombre}
+                      onChangeText={(value) => actualizarMedicamento(index, value)}
+                      onSubmitEditing={() => Keyboard.dismiss()}
+                      blurOnSubmit
+                      returnKeyType="done"
+                    />
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.filaBotones}>
+                <View style={styles.botonFlex}>
+                  <Button texto="Atrás" onPress={() => setPaso(1)} variant="secundario" />
+                </View>
+                <View style={styles.botonFlex}>
+                  <Button texto="Siguiente" onPress={avanzarDesdePaso2} />
+                </View>
+              </View>
+            </Card>
+          </TouchableWithoutFeedback>
+        ) : null}
+
+        {paso === 3 ? (
+          <Card>
+            <Text style={styles.subtituloSeccion}>Entrega</Text>
+            <Text style={styles.texto}>Modo de entrega</Text>
+
+            <View style={styles.toggleCardsWrap}>
+              <TouchableOpacity
+                style={[styles.toggleCard, modoEntrega === 'domicilio' ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                onPress={() => setModoEntrega('domicilio')}
+              >
+                <Text style={styles.toggleTitle}>A domicilio</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleCard, modoEntrega === 'recogida' ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                onPress={() => setModoEntrega('recogida')}
+              >
+                <Text style={styles.toggleTitle}>Recoger en punto</Text>
+              </TouchableOpacity>
+            </View>
+
+            {modoEntrega === 'domicilio' ? (
+              <View style={styles.direccionBox}>
+                <Text style={styles.texto}>Ciudad de entrega</Text>
+                <View style={styles.infoBox}>
+                  <Text style={styles.infoValue}>{perfil?.ciudad ?? 'No registrada'}</Text>
+                </View>
+
+                <Text style={styles.texto}>Dirección de entrega</Text>
+                {!perfil?.direcciones?.length ? <Text style={styles.texto}>No tienes direcciones registradas en tu perfil.</Text> : null}
+                {perfil?.direcciones?.map((direccion, index) => (
+                  <TouchableOpacity
+                    key={`${direccion.direccion}-${index}`}
+                    style={[styles.toggleCard, indiceDireccion === index ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                    onPress={() => setIndiceDireccion(index)}
+                  >
+                    <Text style={styles.toggleTitle}>{direccion.etiqueta}</Text>
+                    <Text style={styles.toggleSub}>{direccion.direccion}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+
+            <View style={styles.filaBotones}>
+              <View style={styles.botonFlex}>
+                <Button texto="Atrás" onPress={() => setPaso(2)} variant="secundario" />
+              </View>
+              <View style={styles.botonFlex}>
+                <Button texto="Siguiente" onPress={avanzarDesdePaso3} />
+              </View>
+            </View>
+          </Card>
+        ) : null}
+
+        {paso === 4 ? (
+          <Card>
+            <Text style={styles.subtituloSeccion}>Confirmar</Text>
             <View style={styles.formList}>
-              {medicamentos.map((medicamento, index) => (
-                <Input
-                  key={`${medicamento.nombre}-${index}`}
-                  label={`Medicamento ${index + 1}`}
-                  value={medicamento.nombre}
-                  onChangeText={(value) => actualizarMedicamento(index, value)}
-                />
-              ))}
+              <Text style={styles.info}>Tipo: {getResumenTipo()}</Text>
+              <Text style={styles.info}>Medicamentos: {medicamentoResumen || 'Sin medicamentos'}</Text>
+              <Text style={styles.info}>Modo de entrega: {getResumenEntrega()}</Text>
+              <Text style={styles.info}>
+                {modoEntrega === 'domicilio'
+                  ? `Dirección: ${perfil?.direcciones?.[indiceDireccion]?.direccion ?? 'No definida'}`
+                  : `Ciudad: ${perfil?.ciudad ?? 'No registrada'}`}
+              </Text>
             </View>
-          )}
-        </Card>
 
-        <Card>
-          <Text style={styles.subtituloSeccion}>Modo de entrega</Text>
-          <View style={styles.filaBotones}>
-            <Button texto="Domicilio" onPress={() => setModoEntrega('domicilio')} variant={modoEntrega === 'domicilio' ? 'primario' : 'secundario'} />
-            <Button texto="Recogida" onPress={() => setModoEntrega('recogida')} variant={modoEntrega === 'recogida' ? 'primario' : 'secundario'} />
-          </View>
-
-          {modoEntrega === 'domicilio' ? (
-            <View style={styles.direccionBox}>
-              <Text style={styles.texto}>Dirección de entrega</Text>
-              {!perfil?.direcciones?.length ? <Text style={styles.texto}>No tienes direcciones registradas en tu perfil.</Text> : null}
-              {perfil?.direcciones?.map((direccion, index) => (
-                <Button
-                  key={`${direccion.direccion}-${index}`}
-                  texto={`${direccion.etiqueta}: ${direccion.direccion}`}
-                  onPress={() => setIndiceDireccion(index)}
-                  variant={indiceDireccion === index ? 'primario' : 'secundario'}
-                />
-              ))}
+            <View style={styles.accionPrincipal}>
+              <Button texto="Enviar solicitud" onPress={enviarSolicitud} loading={loading} />
             </View>
-          ) : null}
-        </Card>
-
-        <Button texto="Enviar solicitud" onPress={enviarSolicitud} loading={loading} />
+            <View style={styles.botonAtrasSolo}>
+              <Button texto="Atrás" onPress={() => setPaso(3)} variant="secundario" />
+            </View>
+          </Card>
+        ) : null}
       </ScrollView>
     </Screen>
   );
@@ -232,6 +369,48 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     gap: 14,
+    paddingTop: 6,
+  },
+  pasosHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: '#ffffff',
+  },
+  pasoItem: {
+    alignItems: 'center',
+    gap: 6,
+    width: '24%',
+  },
+  pasoCirculo: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pasoCirculoActivo: {
+    backgroundColor: '#0f766e',
+  },
+  pasoCirculoInactivo: {
+    backgroundColor: '#f1f5f9',
+  },
+  pasoNumero: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pasoNumeroActivo: {
+    color: '#ffffff',
+  },
+  pasoNumeroInactivo: {
+    color: '#94a3b8',
+  },
+  pasoLabel: {
+    color: '#334155',
+    fontSize: 12,
+    textAlign: 'center',
   },
   hero: {
     gap: 6,
@@ -267,7 +446,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   filaBotones: {
+    flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+  accionPrincipal: {
+    marginTop: 12,
+  },
+  botonFlex: {
+    flex: 1,
   },
   formList: {
     gap: 10,
@@ -283,5 +471,47 @@ const styles = StyleSheet.create({
   direccionBox: {
     gap: 8,
     marginTop: 12,
+  },
+  toggleCardsWrap: {
+    gap: 8,
+    marginTop: 10,
+  },
+  toggleCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 4,
+  },
+  toggleCardSelected: {
+    borderColor: '#0f766e',
+    backgroundColor: '#f0fdfa',
+  },
+  toggleCardDefault: {
+    borderColor: '#dbe4ee',
+    backgroundColor: '#ffffff',
+  },
+  toggleTitle: {
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  toggleSub: {
+    color: '#334155',
+  },
+  infoBox: {
+    borderWidth: 1,
+    borderColor: '#dbe4ee',
+    borderRadius: 12,
+    padding: 10,
+    backgroundColor: '#f8fafc',
+  },
+  infoValue: {
+    color: '#334155',
+    fontWeight: '600',
+  },
+  info: {
+    color: '#334155',
+  },
+  botonAtrasSolo: {
+    marginTop: 10,
   },
 });

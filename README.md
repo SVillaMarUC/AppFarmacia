@@ -13,9 +13,10 @@ App móvil Expo + React Native para flujos de afiliado, despachador, domiciliari
 
 1. Crea el archivo `.env` usando `.env.example`.
 2. Completa las variables `EXPO_PUBLIC_FIREBASE_*` con tu proyecto.
-3. Si no usarás servicios pagos, deja activados:
-	- `EXPO_PUBLIC_DISABLE_STORAGE_UPLOADS=true`
-	- `EXPO_PUBLIC_DISABLE_GOOGLE_VISION=true`
+3. Si ejecutas una build de EAS o una app instalada, replica esas mismas variables en el entorno del build; `.env` local no viaja al servidor de compilación.
+4. Si no usarás servicios pagos, deja activados:
+   - `EXPO_PUBLIC_DISABLE_STORAGE_UPLOADS=true`
+   - `EXPO_PUBLIC_DISABLE_GOOGLE_VISION=true`
 
 ## Comandos principales
 

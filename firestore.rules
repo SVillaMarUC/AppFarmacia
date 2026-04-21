@@ -42,6 +42,16 @@ service cloud.firestore {
       allow delete: if esAdmin();
     }
 
+    match /accesosCedula/{cedula} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if autenticado() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if autenticado() && (
+        resource.data.uid == request.auth.uid ||
+        esAdmin()
+      );
+    }
+
     match /pedidos/{pedidoId} {
       allow create: if esAfiliado() && request.resource.data.usuarioId == request.auth.uid;
       allow read: if autenticado() && (

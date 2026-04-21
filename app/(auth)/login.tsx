@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'expo-router';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -12,8 +12,9 @@ const BLOQUEO_SEGUNDOS = 60;
 
 export default function LoginScreen() {
   const { login, loading, error } = useAuth();
-  const [cedula, setCedula] = useState('');
+  const [cedulaInput, setCedulaInput] = useState('');
   const [contrasena, setContrasena] = useState('');
+  const [cedulaError, setCedulaError] = useState('');
   const [fallos, setFallos] = useState(0);
   const [bloqueadoHasta, setBloqueadoHasta] = useState<number | null>(null);
   const [segundosRestantes, setSegundosRestantes] = useState(0);
@@ -49,9 +50,21 @@ export default function LoginScreen() {
     if (bloqueado) {
       return;
     }
+
+    const cedulaLimpia = cedulaInput.replace(/\D/g, '');
+    if (cedulaLimpia.length < 7 || cedulaLimpia.length > 10) {
+      setCedulaError('La cédula debe tener entre 7 y 10 dígitos.');
+      return;
+    }
+
+    setCedulaError('');
+    Keyboard.dismiss();
+
     try {
-      await login(cedula, contrasena);
+      await login(cedulaLimpia, contrasena);
     } catch (e) {
+      const mensaje = e instanceof Error ? e.message : 'No se pudo iniciar sesión.';
+      Alert.alert('Error de inicio de sesión', mensaje);
       manejarFallo();
     }
   };
@@ -69,12 +82,19 @@ export default function LoginScreen() {
           <Card>
             <View style={styles.cardContent}>
               <Input
-                label="Cédula o correo"
-                value={cedula}
-                onChangeText={setCedula}
-                placeholder="Ej: 1012345678 o usuario@correo.com"
-                keyboardType="default"
+                label="Cédula"
+                value={cedulaInput}
+                onChangeText={(value) => {
+                  setCedulaInput(value.replace(/\D/g, ''));
+                  if (cedulaError) {
+                    setCedulaError('');
+                  }
+                }}
+                placeholder="Número de cédula"
+                keyboardType="numeric"
+                maxLength={10}
               />
+              {cedulaError ? <Text style={styles.error}>{cedulaError}</Text> : null}
               <Input
                 label="Contraseña"
                 value={contrasena}
@@ -86,15 +106,26 @@ export default function LoginScreen() {
               <Button texto="Ingresar" onPress={onLoginConContrasena} loading={loading} disabled={bloqueado} />
 
               {bloqueado ? <Text style={styles.error}>Acceso bloqueado. Intenta en {segundosRestantes}s.</Text> : null}
-              {error ? <Text style={styles.error}>{error}</Text> : null}
+              {error ? (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorTitle}>Error de inicio de sesión</Text>
+                  <Text style={styles.error}>{error}</Text>
+                </View>
+              ) : null}
 
               <View style={styles.links}>
-                <Link style={styles.link} href="/(auth)/forgot-password">
-                  ¿Olvidaste tu contraseña?
-                </Link>
-                <Link style={styles.link} href="/(auth)/register">
-                  Crear cuenta como afiliado
-                </Link>
+                <View style={styles.actionsRow}>
+                  <Link href="/(auth)/register" asChild>
+                    <TouchableOpacity style={styles.registerButton}>
+                      <Text style={styles.registerLink}>Crear cuenta</Text>
+                    </TouchableOpacity>
+                  </Link>
+                  <Link href="/(auth)/forgot-password" asChild>
+                    <TouchableOpacity style={styles.resetButton}>
+                      <Text style={styles.resetLink}>Restablecer contraseña</Text>
+                    </TouchableOpacity>
+                  </Link>
+                </View>
               </View>
             </View>
           </Card>
@@ -140,12 +171,55 @@ const styles = StyleSheet.create({
   links: {
     gap: 8,
   },
-  link: {
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  registerButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#0f766e',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#f0fdfa',
+    alignItems: 'center',
+  },
+  registerLink: {
+    color: '#0f766e',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  resetButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#0369a1',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(3, 105, 161, 0.12)',
+    alignItems: 'center',
+  },
+  resetLink: {
     color: '#0369a1',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 13,
   },
   error: {
     color: '#dc2626',
     fontWeight: '600',
+  },
+  errorBox: {
+    gap: 4,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    backgroundColor: '#fff1f2',
+  },
+  errorTitle: {
+    color: '#991b1b',
+    fontWeight: '800',
+    fontSize: 13,
   },
 });

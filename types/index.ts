@@ -24,16 +24,18 @@ export interface Medicamento {
 
 export interface Usuario {
   uid: string;
-  cedula: string;
+  cedula: number;
   email?: string;
   nombre: string;
   fechaNacimiento: Date;
   genero: string;
   eps: string;
+  ciudad: string;
   direcciones: Direccion[];
   telefono: string;
   contactoEmergencia: ContactoEmergencia;
   esPrioritario: boolean;
+  disponible?: boolean;
   tipoPrioridad?: 'adulto_mayor' | 'discapacidad' | 'embarazo';
   rol: 'afiliado' | 'administrador' | 'domiciliario' | 'despachador';
   creadoEn: Timestamp;
@@ -43,8 +45,9 @@ export interface Pedido {
   id: string;
   usuarioId: string;
   medicamentos: Medicamento[];
-  estado: 'pendiente' | 'en_preparacion' | 'listo' | 'en_camino' | 'entregado';
+  estado: 'pendiente' | 'asignado' | 'en_preparacion' | 'listo' | 'en_camino' | 'entregado' | 'cancelado';
   modoEntrega: 'domicilio' | 'recogida';
+  ciudad?: string;
   direccionEntrega?: Direccion;
   domiciliarioId?: string;
   recetaUrl: string | null;
