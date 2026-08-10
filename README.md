@@ -55,3 +55,6 @@ App móvil Expo + React Native para flujos de afiliado, despachador, domiciliari
 - `.env` **no** debe subirse al repositorio de Git.
 - Si ejecutas una build de EAS desde la nube, recuerda configurar tus *secrets* en el panel de Expo, ya que `.env` no viaja al servidor.
 - Las reglas `firestore.rules` y `storage.rules` se deben versionar y desplegar junto con cambios de permisos de la base de datos.
+- Git flow: Se utiliza este modelo de ramificaciones para el control de versiones y entregas:
+  - `main`: Rama principal que contiene la última versión estable y desplegada.
+  - `develop`: Rama de desarrollo activo. Los nuevos desarrollos o funcionalidades se crean como ramas hijas de `develop` (`feature/...`) y se integran nuevamente a `develop` por medio de *Pull Requests*.
