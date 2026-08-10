@@ -3,11 +3,12 @@ import type { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'FarmaYa',
   slug: 'farma-ya',
+  owner: 'farma-team',
   version: '1.0.0',
   scheme: 'farmaya',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
-  plugins: ['expo-router'],
+  plugins: ['expo-router', 'expo-font', 'expo-secure-store'],
   experiments: {
     typedRoutes: true,
   },
