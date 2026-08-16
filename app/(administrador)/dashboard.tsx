@@ -5,6 +5,7 @@ import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { db } from '@/services/firebase/config';
 import type { Pedido } from '@/types';
 

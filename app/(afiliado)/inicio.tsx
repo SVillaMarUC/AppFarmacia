@@ -5,6 +5,7 @@ import { EstadoPedidoBadge } from '@/components/afiliado/EstadoPedidoBadge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { firestoreService } from '@/services/firebase/firestore.service';
 import type { Pedido } from '@/types';
@@ -24,11 +25,11 @@ export default function InicioAfiliadoScreen() {
   return (
     <Screen>
       <View style={styles.container}>
-        <View style={styles.hero}>
-          <Text style={styles.kicker}>Panel afiliado</Text>
-          <Text style={styles.titulo}>Hola, {perfil?.nombre ?? 'afiliado'}</Text>
-          <Text style={styles.subtitulo}>Consulta tus pedidos, crea una nueva solicitud y sigue el estado de entrega desde un solo lugar.</Text>
-        </View>
+        <ScreenHeader
+          kicker="Panel afiliado"
+          title={`Hola, ${perfil?.nombre ?? 'afiliado'}`}
+          subtitle="Consulta tus pedidos, crea una nueva solicitud y sigue el estado de entrega desde un solo lugar."
+        />
 
         {perfil?.esPrioritario ? <Text style={styles.badge}>Prioritario: atención preferencial</Text> : null}
 

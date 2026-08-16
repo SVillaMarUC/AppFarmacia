@@ -10,6 +10,8 @@ type InputProps = {
   placeholder?: string;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'numeric' | 'phone-pad' | 'email-address';
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoCorrect?: boolean;
   error?: string;
   maxLength?: number;
   onSubmitEditing?: (e: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => void;
@@ -24,6 +26,8 @@ export const Input = ({
   placeholder,
   secureTextEntry,
   keyboardType,
+  autoCapitalize,
+  autoCorrect,
   error,
   maxLength,
   onSubmitEditing,
@@ -43,6 +47,8 @@ export const Input = ({
         placeholderTextColor="#94a3b8"
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize ?? (secureTextEntry ? 'none' : undefined)}
+        autoCorrect={autoCorrect ?? (secureTextEntry ? false : undefined)}
         maxLength={maxLength}
         onSubmitEditing={onSubmitEditing}
         blurOnSubmit={blurOnSubmit}

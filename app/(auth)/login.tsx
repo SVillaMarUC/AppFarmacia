@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuth } from '@/hooks/useAuth';
 
 const INTENTOS_MAXIMOS = 3;
@@ -73,11 +74,11 @@ export default function LoginScreen() {
     <Screen>
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.shell}>
-          <View style={styles.hero}>
-            <Text style={styles.kicker}>EPS • Farmacia • Entregas</Text>
-            <Text style={styles.titulo}>FarmaYa</Text>
-            <Text style={styles.subtitulo}>Accede con tu cédula EPS y revisa tus medicamentos con un flujo simple y confiable.</Text>
-          </View>
+          <ScreenHeader
+            kicker="EPS • Farmacia • Entregas"
+            title="FarmaYa"
+            subtitle="Accede con tu cédula EPS y revisa tus medicamentos con un flujo simple y confiable."
+          />
 
           <Card>
             <View style={styles.cardContent}>

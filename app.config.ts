@@ -6,6 +6,7 @@ const config: ExpoConfig = {
   owner: 'farma-team',
   version: '1.0.0',
   scheme: 'farmaya',
+  icon: './assets/icon.png',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   plugins: ['expo-router', 'expo-font', 'expo-secure-store'],
@@ -14,10 +15,18 @@ const config: ExpoConfig = {
   },
   ios: {
     supportsTablet: true,
+    icon: './assets/icon.png',
   },
   android: {
     package: 'com.farmaya.app',
     permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'POST_NOTIFICATIONS'],
+    adaptiveIcon: {
+      foregroundImage: './assets/adaptive-icon.png',
+      backgroundColor: '#ffffff',
+    },
+  },
+  web: {
+    favicon: './assets/favicon.png',
   },
   updates: {
     url: 'https://u.expo.dev/8111788a-5362-4e2d-9ee0-e204bd4bcd16',
