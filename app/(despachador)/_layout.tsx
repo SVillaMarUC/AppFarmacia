@@ -24,20 +24,20 @@ export default function DespachadorLayout() {
         }}
       >
         <Tabs.Screen
-          name="despachar"
-          options={{
-            title: 'Despachar',
-            tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'send' : 'send-outline'} color={color} size={size} />
-            ),
-          }}
-        />
-        <Tabs.Screen
           name="inventario"
           options={{
             title: 'Inventario',
             tabBarIcon: ({ focused, color, size }) => (
               <Ionicons name={focused ? 'layers' : 'layers-outline'} color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="despachar"
+          options={{
+            title: 'Despachar',
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'send' : 'send-outline'} color={color} size={size} />
             ),
           }}
         />

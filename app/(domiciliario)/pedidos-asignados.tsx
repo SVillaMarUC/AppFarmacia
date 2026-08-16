@@ -4,6 +4,7 @@ import { collection, doc, limit, onSnapshot, query, updateDoc, where } from 'fir
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/services/firebase/config';
 import type { Pedido } from '@/types';
@@ -111,6 +112,12 @@ export default function PedidosAsignadosScreen() {
   return (
     <Screen>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScreenHeader
+          kicker="Módulo Domiciliario"
+          title="Pedidos Asignados"
+          subtitle="Monitorea tus entregas en curso, transmite tu ubicación y reporta el estado en tiempo real."
+        />
+
         <Card>
           <View style={styles.estadoRow}>
             <Text style={styles.estadoLabel}>Estado:</Text>

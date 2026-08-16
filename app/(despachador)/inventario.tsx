@@ -4,6 +4,7 @@ import { addDoc, collection, doc, onSnapshot, updateDoc } from 'firebase/firesto
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { db } from '@/services/firebase/config';
 
 type InventarioItem = {
@@ -110,11 +111,17 @@ export default function InventarioScreen() {
   return (
     <Screen>
       <View style={styles.container}>
+        <ScreenHeader
+          kicker="Módulo Despachador"
+          title="Inventario de Farmacia"
+          subtitle="Consulta, filtra y gestiona el stock de medicamentos de la sede en tiempo real."
+        />
+
         <TextInput
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
-          placeholder="Buscar medicamento..."
+          placeholder="Buscar medicamento por nombre..."
           placeholderTextColor="#94a3b8"
         />
 
