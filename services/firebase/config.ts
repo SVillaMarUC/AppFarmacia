@@ -74,7 +74,7 @@ const buildAuth = () => {
 const buildDb = () => {
   try {
     return initializeFirestore(app, {
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
     });
   } catch {
     return getFirestore(app);

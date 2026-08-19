@@ -31,7 +31,7 @@ export default function AfiliadoLayout() {
           options={{
             title: 'Inicio',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={size} />
+              <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={size ?? 24} />
             ),
           }}
         />
@@ -40,7 +40,7 @@ export default function AfiliadoLayout() {
           options={{
             title: 'Solicitud',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} color={color} size={size} />
+              <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} color={color} size={size ?? 24} />
             ),
           }}
         />
@@ -49,7 +49,7 @@ export default function AfiliadoLayout() {
           options={{
             title: 'Rastreo',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'location' : 'location-outline'} color={color} size={size} />
+              <Ionicons name={focused ? 'location' : 'location-outline'} color={color} size={size ?? 24} />
             ),
           }}
         />
@@ -58,7 +58,7 @@ export default function AfiliadoLayout() {
           options={{
             title: 'Historial',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'time' : 'time-outline'} color={color} size={size} />
+              <Ionicons name={focused ? 'time' : 'time-outline'} color={color} size={size ?? 24} />
             ),
           }}
         />
@@ -67,7 +67,7 @@ export default function AfiliadoLayout() {
           options={{
             title: 'Perfil',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size} />
+              <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size ?? 24} />
             ),
           }}
         />
