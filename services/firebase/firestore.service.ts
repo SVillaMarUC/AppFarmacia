@@ -24,6 +24,7 @@ export const firestoreService = {
       }
       return snap.data() as Usuario;
     } catch (error) {
+      console.error('[Firestore Error] obtenerUsuario:', error);
       throw new Error('No fue posible obtener el usuario.');
     }
   },
@@ -36,11 +37,18 @@ export const firestoreService = {
         where('estado', 'in', ['pendiente', 'en_preparacion', 'listo', 'en_camino'])
       );
 
-      return onSnapshot(q, (snapshot) => {
-        const pedido = snapshot.docs[0]?.data() as Pedido | undefined;
-        callback(pedido ?? null);
-      });
+      return onSnapshot(
+        q,
+        (snapshot) => {
+          const pedido = snapshot.docs[0]?.data() as Pedido | undefined;
+          callback(pedido ?? null);
+        },
+        (error) => {
+          console.error('[Firestore Error] escucharPedidoActivo:', error);
+        }
+      );
     } catch (error) {
+      console.error('[Firestore Error] escucharPedidoActivo catch:', error);
       throw new Error('No fue posible escuchar el pedido activo.');
     }
   },
@@ -57,6 +65,7 @@ export const firestoreService = {
       });
       return ref.id;
     } catch (error) {
+      console.error('[Firestore Error] crearPedido:', error);
       throw new Error('No fue posible crear el pedido.');
     }
   },
@@ -66,6 +75,7 @@ export const firestoreService = {
       const snapshot = await getDocs(collection(db, 'inventario'));
       return snapshot.docs.map((docItem) => ({ id: docItem.id, ...(docItem.data() as Omit<ItemInventario, 'id'>) }));
     } catch (error) {
+      console.error('[Firestore Error] obtenerInventario:', error);
       throw new Error('No fue posible obtener el inventario.');
     }
   },
@@ -74,6 +84,7 @@ export const firestoreService = {
     try {
       await setDoc(doc(db, 'inventario', item.id), item, { merge: true });
     } catch (error) {
+      console.error('[Firestore Error] guardarInventario:', error);
       throw new Error('No fue posible guardar el inventario.');
     }
   },
@@ -82,6 +93,7 @@ export const firestoreService = {
     try {
       await updateDoc(doc(db, 'pedidos', pedidoId), data);
     } catch (error) {
+      console.error('[Firestore Error] actualizarPedido:', error);
       throw new Error('No fue posible actualizar el pedido.');
     }
   },
@@ -89,14 +101,21 @@ export const firestoreService = {
   escucharPedidosDomiciliario(uid: string, callback: (pedidos: Pedido[]) => void): () => void {
     try {
       const q = query(collection(db, 'pedidos'), where('domiciliarioId', '==', uid));
-      return onSnapshot(q, (snapshot) => {
-        const pedidos = snapshot.docs.map((pedido) => ({
-          id: pedido.id,
-          ...(pedido.data() as Omit<Pedido, 'id'>),
-        }));
-        callback(pedidos);
-      });
+      return onSnapshot(
+        q,
+        (snapshot) => {
+          const pedidos = snapshot.docs.map((pedido) => ({
+            id: pedido.id,
+            ...(pedido.data() as Omit<Pedido, 'id'>),
+          }));
+          callback(pedidos);
+        },
+        (error) => {
+          console.error('[Firestore Error] escucharPedidosDomiciliario:', error);
+        }
+      );
     } catch (error) {
+      console.error('[Firestore Error] escucharPedidosDomiciliario catch:', error);
       throw new Error('No fue posible escuchar pedidos del domiciliario.');
     }
   },
@@ -120,6 +139,7 @@ export const firestoreService = {
         { merge: true }
       );
     } catch (error) {
+      console.error('[Firestore Error] actualizarUbicacionDomiciliario:', error);
       throw new Error('No fue posible actualizar la ubicación del domiciliario.');
     }
   },

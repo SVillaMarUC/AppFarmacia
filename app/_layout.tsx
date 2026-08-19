@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { Slot, usePathname, useRouter, useSegments } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider } from '@/context/AuthContext';
 import { PedidoProvider } from '@/context/PedidoContext';
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -63,9 +65,19 @@ const Guard = () => {
 };
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
+  });
+
   useEffect(() => {
-    // Espacio para inicialización de notificaciones o listeners globales.
-  }, []);
+    if (fontError) {
+      console.error('[Font Error]:', fontError);
+    }
+  }, [fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return <LoadingOverlay texto="Cargando recursos..." />;
+  }
 
   return (
     <AuthProvider>
