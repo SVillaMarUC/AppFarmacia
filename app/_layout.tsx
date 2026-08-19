@@ -75,17 +75,17 @@ export default function RootLayout() {
     }
   }, [fontError]);
 
-  if (!fontsLoaded && !fontError) {
-    return <LoadingOverlay texto="Cargando recursos..." />;
-  }
-
   return (
-    <AuthProvider>
-      <ThemeProvider>
+    <ThemeProvider>
+      <AuthProvider>
         <PedidoProvider>
-          <Guard />
+          {!fontsLoaded && !fontError ? (
+            <LoadingOverlay texto="Cargando recursos..." />
+          ) : (
+            <Guard />
+          )}
         </PedidoProvider>
-      </ThemeProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
