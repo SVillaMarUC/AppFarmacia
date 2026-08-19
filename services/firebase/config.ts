@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { getAuth, initializeAuth } from 'firebase/auth';
 import type { Persistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 type ExtraConfig = {
@@ -71,6 +71,16 @@ const buildAuth = () => {
   }
 };
 
+const buildDb = () => {
+  try {
+    return initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+    });
+  } catch {
+    return getFirestore(app);
+  }
+};
+
 export const auth = buildAuth();
-export const db = getFirestore(app);
+export const db = buildDb();
 export const storage = getStorage(app);
