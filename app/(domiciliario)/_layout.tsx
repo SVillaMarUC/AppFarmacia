@@ -28,7 +28,7 @@ export default function DomiciliarioLayout() {
           options={{
             title: 'Pedidos',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'cube' : 'cube-outline'} color={color} size={size} />
+              <Ionicons name={focused ? 'cube' : 'cube-outline'} color={color} size={size ?? 24} />
             ),
           }}
         />
@@ -37,7 +37,7 @@ export default function DomiciliarioLayout() {
           options={{
             title: 'Navegación',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'navigate' : 'navigate-outline'} color={color} size={size} />
+              <Ionicons name={focused ? 'navigate' : 'navigate-outline'} color={color} size={size ?? 24} />
             ),
           }}
         />
@@ -46,7 +46,7 @@ export default function DomiciliarioLayout() {
           options={{
             title: 'Perfil',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size} />
+              <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size ?? 24} />
             ),
           }}
         />
