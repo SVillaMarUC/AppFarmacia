@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { AppLogo } from '@/components/ui/AppLogo';
+import { useTheme } from '@/context/ThemeContext';
 
 type ScreenHeaderProps = {
   title: string;
@@ -17,17 +18,25 @@ export const ScreenHeader = ({
   logoSize = 44,
   rightAction,
 }: ScreenHeaderProps) => {
+  const { theme } = useTheme();
+
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
         <AppLogo size={logoSize} showBadge={false} />
         <View style={styles.textContainer}>
-          {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          {kicker ? (
+            <Text style={[styles.kicker, { color: theme.colors.primary }]}>{kicker}</Text>
+          ) : null}
+          <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>
+            {title}
+          </Text>
         </View>
         {rightAction ? <View style={styles.rightAction}>{rightAction}</View> : null}
       </View>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {subtitle ? (
+        <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text>
+      ) : null}
     </View>
   );
 };
@@ -47,7 +56,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   kicker: {
-    color: '#0f766e',
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1.1,
@@ -56,11 +64,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#0f172a',
     letterSpacing: -0.4,
   },
   subtitle: {
-    color: '#334155',
     lineHeight: 20,
     fontSize: 14,
   },
@@ -68,3 +74,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+

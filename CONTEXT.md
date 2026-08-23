@@ -67,4 +67,4 @@ AppFarmacia/
   - Consolidar el flujo de OCR de recetas médicas y autocompletado en el formulario de creación de pedidos.
   - Implementar el seguimiento en tiempo real en mapa para afiliados cuando el domiciliario está en camino.
   - Configurar las notificaciones push automáticas para cambios en el estado del pedido.
-  - Ajustar y pulir la consistencia visual y soporte de temas (claro/oscuro) en las interfaces.
+  - Ajustar y pulir la consistencia visual y soporte de temas (claro/oscuro) en las interfaces. (IMPLEMENTADO)

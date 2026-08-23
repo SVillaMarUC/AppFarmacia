@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useTheme } from '@/context/ThemeContext';
 import { DEPARTAMENTOS_COLOMBIA } from '@/constants/departamentosColombia';
 import { useLocation } from '@/hooks/useLocation';
 import { authService } from '@/services/firebase/auth.service';
@@ -31,6 +33,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function RegisterScreen() {
+  const { theme } = useTheme();
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
@@ -130,11 +133,11 @@ export default function RegisterScreen() {
   return (
     <Screen>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.kicker}>Registro seguro</Text>
-          <Text style={styles.titulo}>Crea tu cuenta afiliado</Text>
-          <Text style={styles.subtitulo}>Te pedimos los datos mínimos para que tu entrega y trazabilidad queden completas desde el inicio.</Text>
-        </View>
+        <ScreenHeader
+          kicker="Registro seguro"
+          title="Crea tu cuenta afiliado"
+          subtitle="Te pedimos los datos mínimos para que tu entrega y trazabilidad queden completas desde el inicio."
+        />
 
         <Card>
           <View style={styles.form}>
@@ -165,23 +168,44 @@ export default function RegisterScreen() {
             ))}
 
             <View style={styles.ciudadContainer}>
-              <Text style={styles.label}>Departamento</Text>
-              <TouchableOpacity style={styles.selectorCiudad} onPress={() => setMostrarListaDepartamento((prev) => !prev)}>
-                <Text style={[styles.selectorTexto, !departamentoSeleccionado && styles.selectorPlaceholder]}>
+              <Text style={[styles.label, { color: theme.colors.inputLabel }]}>Departamento</Text>
+              <TouchableOpacity
+                style={[
+                  styles.selectorCiudad,
+                  {
+                    backgroundColor: theme.colors.inputBg,
+                    borderColor: theme.colors.inputBorder,
+                  },
+                ]}
+                onPress={() => setMostrarListaDepartamento((prev) => !prev)}
+              >
+                <Text
+                  style={[
+                    styles.selectorTexto,
+                    { color: departamentoSeleccionado ? theme.colors.inputText : theme.colors.inputPlaceholder },
+                  ]}
+                >
                   {departamentoSeleccionado || 'Selecciona tu departamento'}
                 </Text>
-                <Text style={styles.selectorFlecha}>{mostrarListaDepartamento ? '▴' : '▾'}</Text>
+                <Text style={[styles.selectorFlecha, { color: theme.colors.textMuted }]}>
+                  {mostrarListaDepartamento ? '▴' : '▾'}
+                </Text>
               </TouchableOpacity>
 
               {departamentoSeleccionado ? (
                 <TouchableOpacity
-                  style={styles.confirmacionCiudad}
+                  style={[
+                    styles.confirmacionCiudad,
+                    { backgroundColor: theme.colors.primaryLight },
+                  ]}
                   onPress={() => {
                     setDepartamentoSeleccionado('');
                     setMostrarListaDepartamento(false);
                   }}
                 >
-                  <Text style={styles.confirmacionTexto}>✓ {departamentoSeleccionado}</Text>
+                  <Text style={[styles.confirmacionTexto, { color: theme.colors.primary }]}>
+                    ✓ {departamentoSeleccionado}
+                  </Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -212,9 +236,29 @@ export default function RegisterScreen() {
 
             <Button texto="Usar mi geolocalización" onPress={cargarUbicacion} loading={loadingUbicacion} variant="secundario" />
 
-            <Pressable style={styles.terminos} onPress={() => setAceptaTerminos((prev) => !prev)}>
-              <View style={[styles.checkbox, aceptaTerminos && styles.checkboxActivo]} />
-              <Text style={styles.terminosTexto}>Acepto tratamiento de datos personales (Ley 1581 - Habeas Data).</Text>
+            <Pressable
+              style={[
+                styles.terminos,
+                {
+                  backgroundColor: theme.colors.surfaceSecondary,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              onPress={() => setAceptaTerminos((prev) => !prev)}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  { borderColor: theme.colors.textSecondary },
+                  aceptaTerminos && {
+                    backgroundColor: theme.colors.primary,
+                    borderColor: theme.colors.primary,
+                  },
+                ]}
+              />
+              <Text style={[styles.terminosTexto, { color: theme.colors.textSecondary }]}>
+                Acepto tratamiento de datos personales (Ley 1581 - Habeas Data).
+              </Text>
             </Pressable>
 
             <Button texto="Crear cuenta" onPress={handleSubmit(onSubmit)} loading={loading} />
@@ -229,8 +273,27 @@ export default function RegisterScreen() {
         onRequestClose={() => setMostrarListaDepartamento(false)}
       >
         <Pressable style={styles.modalBackdrop} onPress={() => setMostrarListaDepartamento(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Selecciona tu departamento</Text>
+          <Pressable
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+            onPress={() => {}}
+          >
+            <Text
+              style={[
+                styles.modalTitle,
+                {
+                  color: theme.colors.text,
+                  borderBottomColor: theme.colors.border,
+                },
+              ]}
+            >
+              Selecciona tu departamento
+            </Text>
             <FlatList
               data={departamentos}
               keyExtractor={(item, index) => `${item}-${index}`}
@@ -239,13 +302,18 @@ export default function RegisterScreen() {
               windowSize={10}
               renderItem={({ item: departamento }) => (
                 <TouchableOpacity
-                  style={styles.sugerenciaItem}
+                  style={[
+                    styles.sugerenciaItem,
+                    { borderBottomColor: theme.colors.borderLight },
+                  ]}
                   onPress={() => {
                     setDepartamentoSeleccionado(departamento);
                     setMostrarListaDepartamento(false);
                   }}
                 >
-                  <Text style={styles.sugerenciaTexto}>{departamento}</Text>
+                  <Text style={[styles.sugerenciaTexto, { color: theme.colors.textSecondary }]}>
+                    {departamento}
+                  </Text>
                 </TouchableOpacity>
               )}
             />
@@ -263,26 +331,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     gap: 14,
-  },
-  hero: {
-    gap: 6,
-  },
-  kicker: {
-    color: '#0f766e',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-    fontSize: 12,
-  },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.4,
-  },
-  subtitulo: {
-    color: '#334155',
-    lineHeight: 20,
+    paddingBottom: 32,
   },
   form: {
     gap: 12,
@@ -291,58 +340,44 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    color: '#0f172a',
     fontSize: 14,
     fontWeight: '700',
   },
   selectorCiudad: {
     borderWidth: 1,
-    borderColor: '#dbe4ee',
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   selectorTexto: {
-    color: '#0f172a',
     fontWeight: '600',
     flex: 1,
     paddingRight: 8,
   },
-  selectorPlaceholder: {
-    color: '#94a3b8',
-    fontWeight: '500',
-  },
   selectorFlecha: {
-    color: '#64748b',
     fontSize: 16,
     fontWeight: '700',
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     padding: 20,
   },
   modalCard: {
     borderWidth: 1,
-    borderColor: '#dbe4ee',
     borderRadius: 12,
-    backgroundColor: '#ffffff',
     overflow: 'hidden',
     maxHeight: '72%',
   },
   modalTitle: {
-    color: '#0f172a',
     fontWeight: '700',
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#dbe4ee',
   },
   sugerenciasScroll: {
     maxHeight: 420,
@@ -351,29 +386,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#dbe4ee',
   },
   sugerenciaTexto: {
-    color: '#334155',
+    fontSize: 14,
   },
   confirmacionCiudad: {
     alignSelf: 'flex-start',
-    backgroundColor: '#f0fdfa',
     borderRadius: 20,
     paddingVertical: 4,
     paddingHorizontal: 10,
   },
   confirmacionTexto: {
-    color: '#0f766e',
     fontWeight: '700',
   },
   terminos: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#dbe4ee',
     borderRadius: 14,
     padding: 12,
   },
@@ -381,16 +411,11 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#334155',
     borderRadius: 4,
-  },
-  checkboxActivo: {
-    backgroundColor: '#0f766e',
-    borderColor: '#0f766e',
   },
   terminosTexto: {
     flex: 1,
-    color: '#334155',
     fontWeight: '600',
+    fontSize: 13,
   },
-});
+});

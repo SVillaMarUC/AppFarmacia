@@ -1,15 +1,15 @@
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { ThemeSelector } from '@/components/ui/ThemeSelector';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function PerfilAdministradorScreen() {
   const { perfil, logout } = useAuth();
-  const { mode, cycleMode } = useTheme();
-
-  const nombreModo = mode === 'system' ? 'Sistema' : mode === 'light' ? 'Claro' : 'Oscuro';
+  const { theme } = useTheme();
 
   const onSalir = async () => {
     try {
@@ -21,60 +21,50 @@ export default function PerfilAdministradorScreen() {
 
   return (
     <Screen>
-      <View style={styles.container}>
-        <View style={styles.hero}>
-          <Text style={styles.kicker}>Mi cuenta</Text>
-          <Text style={styles.titulo}>Perfil de administrador</Text>
-          <Text style={styles.subtitulo}>Gestiona tu sesión y preferencias desde un espacio centralizado.</Text>
-        </View>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ScreenHeader
+          kicker="Mi cuenta"
+          title="Perfil de administrador"
+          subtitle="Gestiona tu sesión y preferencias desde un espacio centralizado."
+        />
 
         <Card>
           <View style={styles.cardContent}>
-            <Text style={styles.linea}>Nombre: {perfil?.nombre}</Text>
-            <Text style={styles.linea}>Cédula: {perfil?.cedula}</Text>
-            <Text style={styles.linea}>Rol: {perfil?.rol}</Text>
-            <Text style={styles.linea}>EPS: {perfil?.eps}</Text>
+            <Text style={[styles.linea, { color: theme.colors.text }]}>
+              Nombre: <Text style={{ color: theme.colors.textSecondary }}>{perfil?.nombre}</Text>
+            </Text>
+            <Text style={[styles.linea, { color: theme.colors.text }]}>
+              Cédula: <Text style={{ color: theme.colors.textSecondary }}>{perfil?.cedula}</Text>
+            </Text>
+            <Text style={[styles.linea, { color: theme.colors.text }]}>
+              Rol: <Text style={{ color: theme.colors.textSecondary }}>{perfil?.rol}</Text>
+            </Text>
+            <Text style={[styles.linea, { color: theme.colors.text }]}>
+              EPS: <Text style={{ color: theme.colors.textSecondary }}>{perfil?.eps}</Text>
+            </Text>
           </View>
         </Card>
 
-        <Button texto={`Tema: ${nombreModo}`} onPress={() => void cycleMode()} variant="secundario" />
+        <ThemeSelector />
+
         <Button texto="Cerrar sesión" onPress={onSalir} variant="peligro" />
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 16,
     gap: 14,
-  },
-  hero: {
-    gap: 6,
-  },
-  kicker: {
-    color: '#0f766e',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-    fontSize: 12,
-  },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.4,
-  },
-  subtitulo: {
-    color: '#334155',
-    lineHeight: 20,
+    paddingBottom: 32,
   },
   cardContent: {
     gap: 10,
   },
   linea: {
-    color: '#334155',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
+

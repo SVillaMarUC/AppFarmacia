@@ -1,25 +1,28 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { RoleGate } from '@/components/auth/RoleGate';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function AfiliadoLayout() {
+  const { theme } = useTheme();
+
   return (
     <RoleGate role="afiliado">
       <Tabs
         screenOptions={{
-          headerStyle: { backgroundColor: '#0f766e' },
+          headerStyle: { backgroundColor: theme.colors.headerBg },
           headerShadowVisible: false,
-          headerTintColor: '#ffffff',
+          headerTintColor: theme.colors.headerText,
           headerTitleAlign: 'center',
           headerTitleStyle: {
-            color: '#ffffff',
+            color: theme.colors.headerText,
             fontWeight: '700',
           },
-          tabBarActiveTintColor: '#0f766e',
-          tabBarInactiveTintColor: '#64748b',
+          tabBarActiveTintColor: theme.colors.tabBarActive,
+          tabBarInactiveTintColor: theme.colors.tabBarInactive,
           tabBarStyle: {
-            backgroundColor: '#ffffff',
-            borderTopColor: '#dbe4ee',
+            backgroundColor: theme.colors.tabBarBg,
+            borderTopColor: theme.colors.tabBarBorder,
             height: 62,
             paddingBottom: 8,
             paddingTop: 6,
@@ -74,4 +77,4 @@ export default function AfiliadoLayout() {
       </Tabs>
     </RoleGate>
   );
-}
+}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useTheme } from '@/context/ThemeContext';
 import { db } from '@/services/firebase/config';
 import type { Pedido } from '@/types';
 
@@ -17,6 +18,7 @@ type EstadoCard = {
 
 export default function DashboardAdminScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(null);
@@ -88,19 +90,23 @@ export default function DashboardAdminScreen() {
   return (
     <Screen>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Panel administrador</Text>
+        <ScreenHeader
+          kicker="Gestión y Control"
+          title="Panel administrador"
+          subtitle="Monitorea el flujo operativo de solicitudes, preparación y entregas."
+        />
 
         <View style={styles.metricasRow}>
           {loading ? (
             <>
               <View style={styles.metricItem}>
-                <View style={[styles.skeletonCard, styles.metricCard]} />
+                <View style={[styles.skeletonCard, styles.metricCard, { backgroundColor: theme.colors.surfaceSecondary }]} />
               </View>
               <View style={styles.metricItem}>
-                <View style={[styles.skeletonCard, styles.metricCard]} />
+                <View style={[styles.skeletonCard, styles.metricCard, { backgroundColor: theme.colors.surfaceSecondary }]} />
               </View>
               <View style={styles.metricItem}>
-                <View style={[styles.skeletonCard, styles.metricCard]} />
+                <View style={[styles.skeletonCard, styles.metricCard, { backgroundColor: theme.colors.surfaceSecondary }]} />
               </View>
             </>
           ) : (
@@ -108,8 +114,8 @@ export default function DashboardAdminScreen() {
               <View style={styles.metricItem}>
                 <Card>
                   <View style={[styles.metricCard, styles.metricPendiente]}>
-                    <Text style={styles.metricValue}>{metricas.pendientes}</Text>
-                    <Text style={styles.metricLabel} numberOfLines={1}>
+                    <Text style={[styles.metricValue, { color: theme.colors.text }]}>{metricas.pendientes}</Text>
+                    <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                       Pend.
                     </Text>
                   </View>
@@ -118,8 +124,8 @@ export default function DashboardAdminScreen() {
               <View style={styles.metricItem}>
                 <Card>
                   <View style={[styles.metricCard, styles.metricCamino]}>
-                    <Text style={styles.metricValue}>{metricas.enCamino}</Text>
-                    <Text style={styles.metricLabel} numberOfLines={1}>
+                    <Text style={[styles.metricValue, { color: theme.colors.text }]}>{metricas.enCamino}</Text>
+                    <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                       Camino
                     </Text>
                   </View>
@@ -128,8 +134,8 @@ export default function DashboardAdminScreen() {
               <View style={styles.metricItem}>
                 <Card>
                   <View style={[styles.metricCard, styles.metricEntregado]}>
-                    <Text style={styles.metricValue}>{metricas.entregadosHoy}</Text>
-                    <Text style={styles.metricLabel} numberOfLines={1}>
+                    <Text style={[styles.metricValue, { color: theme.colors.text }]}>{metricas.entregadosHoy}</Text>
+                    <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                       Hoy
                     </Text>
                   </View>
@@ -141,34 +147,50 @@ export default function DashboardAdminScreen() {
 
         <Card>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pedidos recientes</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Pedidos recientes</Text>
             {pedidosRecientes.length ? (
               pedidosRecientes.map((pedido) => (
-                <Pressable key={pedido.id} style={styles.rowPedido} onPress={() => setPedidoSeleccionado(pedido)}>
+                <Pressable
+                  key={pedido.id}
+                  style={[
+                    styles.rowPedido,
+                    {
+                      borderColor: theme.colors.border,
+                      backgroundColor: theme.colors.surfaceSecondary,
+                    },
+                  ]}
+                  onPress={() => setPedidoSeleccionado(pedido)}
+                >
                   <Text style={[styles.chipEstado, estadoColor(pedido.estado)]}>{pedido.estado.replace('_', ' ')}</Text>
-                  <Text style={styles.rowText}>Afiliado: {pedido.usuarioId}</Text>
-                  <Text style={styles.rowText}>
+                  <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>Afiliado: {pedido.usuarioId}</Text>
+                  <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
                     Medicamentos: {pedido.medicamentos.map((m) => m.nombre).join(', ') || 'Sin medicamentos'}
                   </Text>
-                  <Text style={styles.rowTime}>Hace {tiempoTranscurrido(pedido)}</Text>
+                  <Text style={[styles.rowTime, { color: theme.colors.text }]}>Hace {tiempoTranscurrido(pedido)}</Text>
                 </Pressable>
               ))
             ) : (
-              <Text style={styles.rowText}>No hay pedidos recientes.</Text>
+              <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>No hay pedidos recientes.</Text>
             )}
           </View>
         </Card>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
         <Card>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Acciones rápidas</Text>
-            <Text style={styles.desc}>Consulta indicadores y tendencias operativas.</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Acciones rápidas</Text>
+            <Text style={[styles.desc, { color: theme.colors.textSecondary }]}>
+              Consulta indicadores y tendencias operativas.
+            </Text>
             <Button texto="Ver reportes" onPress={() => router.push('/(administrador)/reportes')} />
-            <Text style={styles.desc}>Revisa solicitudes de soporte y seguimiento.</Text>
+            <Text style={[styles.desc, { color: theme.colors.textSecondary }]}>
+              Revisa solicitudes de soporte y seguimiento.
+            </Text>
             <Button texto="PQRS" onPress={() => router.push('/(administrador)/pqrs')} variant="secundario" />
-            <Text style={styles.desc}>Administración de perfiles y permisos.</Text>
+            <Text style={[styles.desc, { color: theme.colors.textSecondary }]}>
+              Administración de perfiles y permisos.
+            </Text>
             <Button texto="Gestionar usuarios" onPress={() => Alert.alert('Próximamente')} variant="secundario" />
           </View>
         </Card>
@@ -176,13 +198,29 @@ export default function DashboardAdminScreen() {
 
       <Modal visible={Boolean(pedidoSeleccionado)} transparent animationType="fade" onRequestClose={() => setPedidoSeleccionado(null)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.sectionTitle}>Detalle del pedido</Text>
-            <Text style={styles.rowText}>Estado: {pedidoSeleccionado?.estado.replace('_', ' ')}</Text>
-            <Text style={styles.rowText}>Afiliado: {pedidoSeleccionado?.usuarioId}</Text>
-            <Text style={styles.rowText}>Modo de entrega: {pedidoSeleccionado?.modoEntrega}</Text>
-            <Text style={styles.rowText}>Dirección: {pedidoSeleccionado?.direccionEntrega?.direccion ?? 'No aplica'}</Text>
-            <Text style={styles.rowText}>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Detalle del pedido</Text>
+            <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
+              Estado: {pedidoSeleccionado?.estado.replace('_', ' ')}
+            </Text>
+            <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
+              Afiliado: {pedidoSeleccionado?.usuarioId}
+            </Text>
+            <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
+              Modo de entrega: {pedidoSeleccionado?.modoEntrega}
+            </Text>
+            <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
+              Dirección: {pedidoSeleccionado?.direccionEntrega?.direccion ?? 'No aplica'}
+            </Text>
+            <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
               Medicamentos: {pedidoSeleccionado?.medicamentos.map((m) => `${m.nombre} (${m.cantidad})`).join(', ')}
             </Text>
             <Button texto="Cerrar" onPress={() => setPedidoSeleccionado(null)} />
@@ -196,7 +234,6 @@ export default function DashboardAdminScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, gap: 12 },
-  title: { color: '#0f172a', fontWeight: '800', fontSize: 24 },
   metricasRow: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
   metricItem: { flex: 1 },
   metricCard: {
@@ -204,9 +241,8 @@ const styles = StyleSheet.create({
     minHeight: 92,
     justifyContent: 'space-between',
   },
-  metricValue: { fontSize: 28, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
+  metricValue: { fontSize: 28, fontWeight: '800', textAlign: 'center' },
   metricLabel: {
-    color: '#334155',
     fontWeight: '600',
     fontSize: 14,
     lineHeight: 18,
@@ -216,10 +252,10 @@ const styles = StyleSheet.create({
   metricPendiente: { borderTopWidth: 4, borderTopColor: '#d97706', paddingTop: 8 },
   metricCamino: { borderTopWidth: 4, borderTopColor: '#0f766e', paddingTop: 8 },
   metricEntregado: { borderTopWidth: 4, borderTopColor: '#16a34a', paddingTop: 8 },
-  skeletonCard: { backgroundColor: '#f1f5f9', borderRadius: 14 },
+  skeletonCard: { borderRadius: 14 },
   section: { gap: 10 },
-  sectionTitle: { color: '#0f172a', fontWeight: '700', fontSize: 16 },
-  rowPedido: { borderWidth: 1, borderColor: '#dbe4ee', borderRadius: 12, padding: 10, gap: 4 },
+  sectionTitle: { fontWeight: '700', fontSize: 16 },
+  rowPedido: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 4 },
   chipEstado: {
     alignSelf: 'flex-start',
     borderRadius: 999,
@@ -233,22 +269,21 @@ const styles = StyleSheet.create({
   chipCamino: { backgroundColor: '#0f766e' },
   chipEntregado: { backgroundColor: '#16a34a' },
   chipCancelado: { backgroundColor: '#b91c1c' },
-  rowText: { color: '#334155', fontSize: 14, lineHeight: 20 },
-  rowTime: { color: '#334155', fontWeight: '600', fontSize: 14 },
-  divider: { height: 1, backgroundColor: '#dbe4ee', marginVertical: 4 },
-  desc: { color: '#334155', marginTop: 2, fontSize: 14, lineHeight: 20 },
+  rowText: { fontSize: 14, lineHeight: 20 },
+  rowTime: { fontWeight: '600', fontSize: 14 },
+  divider: { height: 1, marginVertical: 4 },
+  desc: { marginTop: 2, fontSize: 14, lineHeight: 20 },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     padding: 20,
   },
   modalCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#dbe4ee',
     padding: 14,
     gap: 8,
   },
 });
+

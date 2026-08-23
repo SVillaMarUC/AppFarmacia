@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 
 const INTENTOS_MAXIMOS = 3;
@@ -13,6 +14,7 @@ const BLOQUEO_SEGUNDOS = 60;
 
 export default function LoginScreen() {
   const { login, loading, error } = useAuth();
+  const { theme } = useTheme();
   const [cedulaInput, setCedulaInput] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [cedulaError, setCedulaError] = useState('');
@@ -95,7 +97,9 @@ export default function LoginScreen() {
                 keyboardType="numeric"
                 maxLength={10}
               />
-              {cedulaError ? <Text style={styles.error}>{cedulaError}</Text> : null}
+              {cedulaError ? (
+                <Text style={[styles.error, { color: theme.colors.error }]}>{cedulaError}</Text>
+              ) : null}
               <Input
                 label="Contraseña"
                 value={contrasena}
@@ -106,24 +110,56 @@ export default function LoginScreen() {
 
               <Button texto="Ingresar" onPress={onLoginConContrasena} loading={loading} disabled={bloqueado} />
 
-              {bloqueado ? <Text style={styles.error}>Acceso bloqueado. Intenta en {segundosRestantes}s.</Text> : null}
+              {bloqueado ? (
+                <Text style={[styles.error, { color: theme.colors.error }]}>
+                  Acceso bloqueado. Intenta en {segundosRestantes}s.
+                </Text>
+              ) : null}
               {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorTitle}>Error de inicio de sesión</Text>
-                  <Text style={styles.error}>{error}</Text>
+                <View
+                  style={[
+                    styles.errorBox,
+                    {
+                      backgroundColor: theme.colors.errorBg,
+                      borderColor: theme.colors.error,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.errorTitle, { color: theme.colors.errorText }]}>
+                    Error de inicio de sesión
+                  </Text>
+                  <Text style={[styles.error, { color: theme.colors.errorText }]}>{error}</Text>
                 </View>
               ) : null}
 
               <View style={styles.links}>
                 <View style={styles.actionsRow}>
-                  <Link href="/(auth)/register" asChild>
-                    <TouchableOpacity style={styles.registerButton}>
-                      <Text style={styles.registerLink}>Crear cuenta</Text>
+                  <Link href="/(auth)/register" asChild style={styles.linkFlex}>
+                    <TouchableOpacity
+                      style={[
+                        styles.registerButton,
+                        {
+                          borderColor: theme.colors.primary,
+                          backgroundColor: theme.colors.primaryLight,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.registerLink, { color: theme.colors.primary }]}>Crear cuenta</Text>
                     </TouchableOpacity>
                   </Link>
-                  <Link href="/(auth)/forgot-password" asChild>
-                    <TouchableOpacity style={styles.resetButton}>
-                      <Text style={styles.resetLink}>Restablecer contraseña</Text>
+                  <Link href="/(auth)/forgot-password" asChild style={styles.linkFlex}>
+                    <TouchableOpacity
+                      style={[
+                        styles.resetButton,
+                        {
+                          borderColor: theme.colors.info,
+                          backgroundColor: theme.colors.infoBg,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.resetLink, { color: theme.colors.infoText }]}>
+                        Restablecer contraseña
+                      </Text>
                     </TouchableOpacity>
                   </Link>
                 </View>
@@ -145,27 +181,6 @@ const styles = StyleSheet.create({
   shell: {
     gap: 14,
   },
-  hero: {
-    gap: 6,
-    marginBottom: 2,
-  },
-  titulo: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.5,
-  },
-  kicker: {
-    color: '#0f766e',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-    fontSize: 12,
-  },
-  subtitulo: {
-    color: '#334155',
-    lineHeight: 20,
-  },
   cardContent: {
     gap: 12,
   },
@@ -175,52 +190,53 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: 8,
+    width: '100%',
+  },
+  linkFlex: {
+    flex: 1,
   },
   registerButton: {
-    flex: 1,
+    width: '100%',
     borderWidth: 1,
-    borderColor: '#0f766e',
     borderRadius: 12,
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: '#f0fdfa',
+    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
   },
   registerLink: {
-    color: '#0f766e',
     fontWeight: '700',
     fontSize: 13,
+    textAlign: 'center',
   },
   resetButton: {
-    flex: 1,
+    width: '100%',
     borderWidth: 1,
-    borderColor: '#0369a1',
     borderRadius: 12,
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(3, 105, 161, 0.12)',
+    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
   },
   resetLink: {
-    color: '#0369a1',
     fontWeight: '700',
     fontSize: 13,
+    textAlign: 'center',
   },
   error: {
-    color: '#dc2626',
     fontWeight: '600',
+    fontSize: 13,
   },
   errorBox: {
     gap: 4,
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#fecaca',
-    backgroundColor: '#fff1f2',
   },
   errorTitle: {
-    color: '#991b1b',
     fontWeight: '800',
     fontSize: 13,
   },
-});
+});

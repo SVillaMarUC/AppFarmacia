@@ -5,6 +5,7 @@ import { collection, getDocs, limit, orderBy, query, where } from 'firebase/fire
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
+import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/services/firebase/config';
 import type { Pedido } from '@/types';
@@ -18,6 +19,7 @@ type EstadoRastreo = {
 
 export default function RastreoScreen() {
   const { perfil } = useAuth();
+  const { theme } = useTheme();
   const [loadingUbicacion, setLoadingUbicacion] = useState(true);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [ubicacion, setUbicacion] = useState<EstadoRastreo | null>(null);
@@ -100,14 +102,26 @@ export default function RastreoScreen() {
       return null;
     }
     const texto = estado === 'en_camino' ? 'En camino' : 'Pendiente';
-    return <Text style={styles.chipEstado}>{texto}</Text>;
+    return (
+      <Text
+        style={[
+          styles.chipEstado,
+          {
+            backgroundColor: theme.colors.primaryLight,
+            color: theme.colors.primary,
+          },
+        ]}
+      >
+        {texto}
+      </Text>
+    );
   };
 
   if (fatalError) {
     return (
       <Screen>
         <View style={styles.center}>
-          <Text style={styles.info}>{fatalError}</Text>
+          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>{fatalError}</Text>
           <Button texto="Reintentar" onPress={() => setReloadKey((prev) => prev + 1)} />
         </View>
       </Screen>
@@ -119,27 +133,36 @@ export default function RastreoScreen() {
       <View style={styles.container}>
         <Card>
           <View style={styles.cardBlock}>
-            <Text style={styles.tituloSeccion}>Tu ubicación actual</Text>
+            <Text style={[styles.tituloSeccion, { color: theme.colors.text }]}>Tu ubicación actual</Text>
             {loadingUbicacion ? (
               <View style={styles.loaderWrap}>
-                <ActivityIndicator color="#0f766e" size="large" />
+                <ActivityIndicator color={theme.colors.primary} size="large" />
               </View>
             ) : null}
 
             {!loadingUbicacion && permissionDenied ? (
               <View style={styles.block}>
-                <Text style={styles.info}>Para rastrear tu pedido necesitamos acceso a tu ubicación.</Text>
+                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                  Para rastrear tu pedido necesitamos acceso a tu ubicación.
+                </Text>
                 <Button texto="Abrir configuración" onPress={() => Linking.openSettings()} />
               </View>
             ) : null}
 
             {!loadingUbicacion && !permissionDenied && ubicacion ? (
               <View style={styles.block}>
-                <Text style={styles.info}>Latitud: {ubicacion.latitud.toFixed(6)}</Text>
-                <Text style={styles.info}>Longitud: {ubicacion.longitud.toFixed(6)}</Text>
-                <Text style={styles.info}>Precisión: {Math.round(ubicacion.precision)} m</Text>
-                <Text style={styles.info}>
-                  Última actualización: {new Date(ubicacion.actualizadoEn).toLocaleTimeString('es-CO', { hour12: false })}
+                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                  Latitud: {ubicacion.latitud.toFixed(6)}
+                </Text>
+                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                  Longitud: {ubicacion.longitud.toFixed(6)}
+                </Text>
+                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                  Precisión: {Math.round(ubicacion.precision)} m
+                </Text>
+                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                  Última actualización:{' '}
+                  {new Date(ubicacion.actualizadoEn).toLocaleTimeString('es-CO', { hour12: false })}
                 </Text>
                 <Button texto="Actualizar ubicación" onPress={() => void cargarUbicacion()} />
               </View>
@@ -149,23 +172,31 @@ export default function RastreoScreen() {
 
         <Card>
           <View style={styles.cardBlock}>
-            <Text style={styles.tituloSeccion}>Estado del pedido</Text>
-            {pedidoError ? <Text style={styles.error}>{pedidoError}</Text> : null}
+            <Text style={[styles.tituloSeccion, { color: theme.colors.text }]}>Estado del pedido</Text>
+            {pedidoError ? (
+              <Text style={[styles.error, { color: theme.colors.error }]}>{pedidoError}</Text>
+            ) : null}
 
             {pedidoActivo ? (
               <View style={styles.block}>
                 {renderChipEstado(pedidoActivo.estado)}
-                <Text style={styles.info}>
+                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
                   Medicamentos:{' '}
                   {pedidoActivo.medicamentos?.length
                     ? pedidoActivo.medicamentos.map((med) => `${med.nombre} (${med.cantidad})`).join(', ')
                     : 'Sin medicamentos registrados'}
                 </Text>
-                <Text style={styles.info}>Modo de entrega: {pedidoActivo.modoEntrega === 'domicilio' ? 'A domicilio' : 'Recoger en punto'}</Text>
-                <Text style={styles.info}>Dirección de entrega: {pedidoActivo.direccionEntrega?.direccion ?? 'No aplica'}</Text>
+                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                  Modo de entrega: {pedidoActivo.modoEntrega === 'domicilio' ? 'A domicilio' : 'Recoger en punto'}
+                </Text>
+                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                  Dirección de entrega: {pedidoActivo.direccionEntrega?.direccion ?? 'No aplica'}
+                </Text>
               </View>
             ) : (
-              <Text style={styles.info}>No tienes pedidos activos en este momento.</Text>
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                No tienes pedidos activos en este momento.
+              </Text>
             )}
           </View>
         </Card>
@@ -184,8 +215,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tituloSeccion: {
-    color: '#0f172a',
     fontWeight: '700',
+    fontSize: 16,
   },
   loaderWrap: {
     justifyContent: 'center',
@@ -200,18 +231,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: '#f0fdfa',
-    color: '#0f766e',
     fontWeight: '700',
     marginBottom: 6,
   },
   info: {
-    color: '#334155',
     lineHeight: 20,
+    fontSize: 14,
   },
   error: {
-    color: '#b91c1c',
     fontWeight: '600',
+    fontSize: 14,
   },
   center: {
     flex: 1,
@@ -221,3 +250,4 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 });
+

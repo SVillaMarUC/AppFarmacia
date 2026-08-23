@@ -8,7 +8,7 @@ const config: ExpoConfig = {
   scheme: 'farmaya',
   icon: './assets/icon.png',
   orientation: 'portrait',
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'automatic',
   plugins: ['expo-router', 'expo-font', 'expo-secure-store'],
   experiments: {
     typedRoutes: true,

@@ -4,9 +4,11 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Screen } from '@/components/ui/Screen';
+import { useTheme } from '@/context/ThemeContext';
 import { authService } from '@/services/firebase/auth.service';
 
 export default function ForgotPasswordScreen() {
+  const { theme } = useTheme();
   const [identificador, setIdentificador] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,9 +29,11 @@ export default function ForgotPasswordScreen() {
       <View style={styles.container}>
         <Card>
           <View style={styles.content}>
-            <Text style={styles.kicker}>Acceso seguro</Text>
-            <Text style={styles.titulo}>Recuperar contraseña</Text>
-            <Text style={styles.descripcion}>Ingresa tu cédula o correo para enviar instrucciones de recuperación.</Text>
+            <Text style={[styles.kicker, { color: theme.colors.primary }]}>Acceso seguro</Text>
+            <Text style={[styles.titulo, { color: theme.colors.text }]}>Recuperar contraseña</Text>
+            <Text style={[styles.descripcion, { color: theme.colors.textSecondary }]}>
+              Ingresa tu cédula o correo para enviar instrucciones de recuperación.
+            </Text>
             <Input
               label="Cédula o correo"
               value={identificador}
@@ -54,7 +58,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   kicker: {
-    color: '#0f766e',
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1.1,
@@ -63,10 +66,9 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#0f172a',
   },
   descripcion: {
-    color: '#334155',
     lineHeight: 20,
+    fontSize: 14,
   },
-});
+});

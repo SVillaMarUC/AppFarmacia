@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 
 type ButtonProps = {
@@ -7,25 +7,50 @@ type ButtonProps = {
   loading?: boolean;
   variant?: 'primario' | 'secundario' | 'peligro';
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 };
 
-export const Button = ({ texto, onPress, loading, variant = 'primario', disabled }: ButtonProps) => {
+export const Button = ({ texto, onPress, loading, variant = 'primario', disabled, style }: ButtonProps) => {
   const { theme } = useTheme();
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.base,
-        variant === 'primario' && [styles.primario, { backgroundColor: theme.buttonPrimary, borderColor: theme.buttonPrimary }],
-        variant === 'secundario' && [styles.secundario, { backgroundColor: theme.buttonSecondaryBg, borderColor: theme.buttonSecondaryBorder }],
-        variant === 'peligro' && styles.peligro,
+        variant === 'primario' && [
+          styles.primario,
+          { backgroundColor: theme.colors.buttonPrimary, borderColor: theme.colors.buttonPrimary },
+        ],
+        variant === 'secundario' && [
+          styles.secundario,
+          {
+            backgroundColor: theme.colors.buttonSecondaryBg,
+            borderColor: theme.colors.buttonSecondaryBorder,
+          },
+        ],
+        variant === 'peligro' && [
+          styles.peligro,
+          { backgroundColor: theme.colors.error, borderColor: theme.colors.error },
+        ],
         (disabled || loading) && styles.disabled,
         pressed && styles.pressed,
+        style,
       ]}
       onPress={onPress}
       disabled={disabled || loading}
     >
-      {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={[styles.texto, variant === 'secundario' && styles.textoSecundario, variant === 'secundario' && { color: theme.buttonSecondaryText }]}>{texto}</Text>}
+      {loading ? (
+        <ActivityIndicator color={variant === 'secundario' ? theme.colors.buttonSecondaryText : '#ffffff'} />
+      ) : (
+        <Text
+          style={[
+            styles.texto,
+            variant === 'secundario' && { color: theme.colors.buttonSecondaryText },
+          ]}
+        >
+          {texto}
+        </Text>
+      )}
     </Pressable>
   );
 };
@@ -41,21 +66,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   primario: {
-    backgroundColor: '#0f766e',
-    borderColor: '#0f766e',
     shadowColor: '#0f766e',
     shadowOpacity: 0.18,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
-  secundario: {
-    backgroundColor: '#ffffff',
-    borderColor: '#dbe4ee',
-  },
+  secundario: {},
   peligro: {
-    backgroundColor: '#b91c1c',
-    borderColor: '#b91c1c',
+    shadowColor: '#dc2626',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   disabled: {
     opacity: 0.6,
@@ -70,7 +93,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.2,
   },
-  textoSecundario: {
-    color: '#0f172a',
-  },
-});
+});

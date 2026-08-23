@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useTheme } from '@/context/ThemeContext';
 import { db } from '@/services/firebase/config';
 
 type InventarioItem = {
@@ -30,6 +31,7 @@ const initialForm: FormInventario = {
 };
 
 export default function InventarioScreen() {
+  const { theme } = useTheme();
   const [search, setSearch] = useState('');
   const [items, setItems] = useState<InventarioItem[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -118,11 +120,18 @@ export default function InventarioScreen() {
         />
 
         <TextInput
-          style={styles.searchInput}
+          style={[
+            styles.searchInput,
+            {
+              backgroundColor: theme.colors.inputBg,
+              borderColor: theme.colors.inputBorder,
+              color: theme.colors.inputText,
+            },
+          ]}
           value={search}
           onChangeText={setSearch}
           placeholder="Buscar medicamento por nombre..."
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={theme.colors.inputPlaceholder}
         />
 
         <FlatList
@@ -134,57 +143,114 @@ export default function InventarioScreen() {
               <Card>
                 <View style={styles.itemRow}>
                   <View>
-                    <Text style={styles.itemNombre}>{item.nombre}</Text>
-                    <Text style={styles.itemDetalle}>
+                    <Text style={[styles.itemNombre, { color: theme.colors.text }]}>{item.nombre}</Text>
+                    <Text style={[styles.itemDetalle, { color: theme.colors.textSecondary }]}>
                       {item.cantidad} {item.unidad || ''}
                     </Text>
                   </View>
-                  {item.cantidad < 10 ? <Text style={styles.stockBajo}>Stock bajo</Text> : null}
+                  {item.cantidad < 10 ? (
+                    <Text
+                      style={[
+                        styles.stockBajo,
+                        {
+                          color: theme.colors.errorText,
+                          borderColor: theme.colors.error,
+                          backgroundColor: theme.colors.errorBg,
+                        },
+                      ]}
+                    >
+                      Stock bajo
+                    </Text>
+                  ) : null}
                 </View>
               </Card>
             </Pressable>
           )}
-          ListEmptyComponent={<Text style={styles.itemDetalle}>Sin resultados.</Text>}
+          ListEmptyComponent={
+            <Text style={[styles.itemDetalle, { color: theme.colors.textSecondary }]}>Sin resultados.</Text>
+          }
         />
 
-        <Pressable style={styles.fab} onPress={abrirAgregar}>
+        <Pressable
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          onPress={abrirAgregar}
+        >
           <Text style={styles.fabText}>+</Text>
         </Pressable>
       </View>
 
       <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{editandoId ? 'Editar ítem' : 'Nuevo ítem'}</Text>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              {editandoId ? 'Editar ítem' : 'Nuevo ítem'}
+            </Text>
             <TextInput
-              style={styles.field}
+              style={[
+                styles.field,
+                {
+                  backgroundColor: theme.colors.inputBg,
+                  borderColor: theme.colors.inputBorder,
+                  color: theme.colors.inputText,
+                },
+              ]}
               value={form.nombre}
               onChangeText={(v) => setForm((prev) => ({ ...prev, nombre: v }))}
               placeholder="Nombre"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.colors.inputPlaceholder}
             />
             <TextInput
-              style={styles.field}
+              style={[
+                styles.field,
+                {
+                  backgroundColor: theme.colors.inputBg,
+                  borderColor: theme.colors.inputBorder,
+                  color: theme.colors.inputText,
+                },
+              ]}
               value={form.cantidad}
               onChangeText={(v) => setForm((prev) => ({ ...prev, cantidad: v }))}
               placeholder="Cantidad"
               keyboardType="numeric"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.colors.inputPlaceholder}
             />
             <TextInput
-              style={styles.field}
+              style={[
+                styles.field,
+                {
+                  backgroundColor: theme.colors.inputBg,
+                  borderColor: theme.colors.inputBorder,
+                  color: theme.colors.inputText,
+                },
+              ]}
               value={form.unidad}
               onChangeText={(v) => setForm((prev) => ({ ...prev, unidad: v }))}
               placeholder="Unidad (opcional)"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.colors.inputPlaceholder}
             />
             <TextInput
-              style={[styles.field, styles.fieldArea]}
+              style={[
+                styles.field,
+                styles.fieldArea,
+                {
+                  backgroundColor: theme.colors.inputBg,
+                  borderColor: theme.colors.inputBorder,
+                  color: theme.colors.inputText,
+                },
+              ]}
               value={form.descripcion}
               onChangeText={(v) => setForm((prev) => ({ ...prev, descripcion: v }))}
               placeholder="Descripción (opcional)"
               multiline
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.colors.inputPlaceholder}
             />
             <Button texto="Guardar" onPress={guardar} />
             <Button texto="Cancelar" onPress={() => setModalVisible(false)} variant="secundario" />
@@ -199,22 +265,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   searchInput: {
     borderWidth: 1,
-    borderColor: '#dbe4ee',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#0f172a',
     marginBottom: 12,
-    backgroundColor: '#ffffff',
   },
   listContent: { gap: 10, paddingBottom: 110 },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  itemNombre: { color: '#0f172a', fontWeight: '700', fontSize: 14 },
-  itemDetalle: { color: '#334155', fontSize: 14, lineHeight: 20 },
+  itemNombre: { fontWeight: '700', fontSize: 14 },
+  itemDetalle: { fontSize: 14, lineHeight: 20 },
   stockBajo: {
-    color: '#b91c1c',
     borderWidth: 1,
-    borderColor: '#b91c1c',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 3,
@@ -228,34 +289,34 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#0f766e',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   fabText: { color: '#ffffff', fontSize: 28, fontWeight: '700', marginTop: -2 },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     padding: 20,
   },
   modalCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#dbe4ee',
     padding: 14,
     gap: 10,
   },
-  modalTitle: { color: '#0f172a', fontWeight: '800', fontSize: 18 },
+  modalTitle: { fontWeight: '800', fontSize: 18 },
   field: {
     borderWidth: 1,
-    borderColor: '#dbe4ee',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
   },
   fieldArea: { minHeight: 80, textAlignVertical: 'top' },
 });
+

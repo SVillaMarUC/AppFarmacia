@@ -4,12 +4,15 @@ import { collection, onSnapshot, orderBy, query, serverTimestamp, updateDoc, whe
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useTheme } from '@/context/ThemeContext';
 import { db } from '@/services/firebase/config';
 import type { Pedido, Usuario } from '@/types';
 
 type DomiciliarioDisponible = Pick<Usuario, 'uid' | 'nombre' | 'cedula'> & { pedidosActivos: number };
 
 export default function DespacharScreen() {
+  const { theme } = useTheme();
   const [pedidosPendientes, setPedidosPendientes] = useState<Pedido[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(null);
@@ -114,21 +117,55 @@ export default function DespacharScreen() {
   return (
     <Screen>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScreenHeader
+          kicker="Módulo Despachador"
+          title="Despachar pedidos"
+          subtitle="Asigna pedidos pendientes a domiciliarios disponibles."
+        />
+
         <Card>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pedidos pendientes</Text>
-            {!pedidosPendientes.length ? <Text style={styles.text}>No hay pedidos pendientes.</Text> : null}
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Pedidos pendientes</Text>
+            {!pedidosPendientes.length ? (
+              <Text style={[styles.text, { color: theme.colors.textSecondary }]}>No hay pedidos pendientes.</Text>
+            ) : null}
 
             {pedidosPendientes.map((pedido) => (
-              <View key={pedido.id} style={styles.rowPedido}>
+              <View
+                key={pedido.id}
+                style={[
+                  styles.rowPedido,
+                  {
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.surfaceSecondary,
+                  },
+                ]}
+              >
                 <View style={styles.rowTop}>
-                  <Text style={styles.textStrong}>Hace {tiempoEsperando(pedido)}</Text>
-                  <Text style={styles.chipEntrega}>{pedido.modoEntrega === 'domicilio' ? 'A domicilio' : 'Recogida'}</Text>
+                  <Text style={[styles.textStrong, { color: theme.colors.text }]}>
+                    Hace {tiempoEsperando(pedido)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.chipEntrega,
+                      {
+                        borderColor: theme.colors.primary,
+                        color: theme.colors.primary,
+                      },
+                    ]}
+                  >
+                    {pedido.modoEntrega === 'domicilio' ? 'A domicilio' : 'Recogida'}
+                  </Text>
                 </View>
-                <Text style={styles.text}>Medicamentos: {pedido.medicamentos.map((m) => m.nombre).join(', ')}</Text>
+                <Text style={[styles.text, { color: theme.colors.textSecondary }]}>
+                  Medicamentos: {pedido.medicamentos.map((m) => m.nombre).join(', ')}
+                </Text>
                 <View style={styles.actionWrap}>
-                  <Pressable style={styles.btnAsignar} onPress={() => abrirAsignacion(pedido)}>
-                    <Text style={styles.btnAsignarText}>Asignar</Text>
+                  <Pressable
+                    style={[styles.btnAsignar, { borderColor: theme.colors.primary }]}
+                    onPress={() => abrirAsignacion(pedido)}
+                  >
+                    <Text style={[styles.btnAsignarText, { color: theme.colors.primary }]}>Asignar</Text>
                   </Pressable>
                 </View>
               </View>
@@ -139,20 +176,40 @@ export default function DespacharScreen() {
 
       <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.sectionTitle}>Asignar pedido</Text>
-            <Text style={styles.text}>{resumenPedido || 'Sin resumen'}</Text>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Asignar pedido</Text>
+            <Text style={[styles.text, { color: theme.colors.textSecondary }]}>{resumenPedido || 'Sin resumen'}</Text>
 
             <View style={styles.listDomWrap}>
               {domiciliarios.map((domi) => (
                 <Pressable
                   key={domi.uid}
-                  style={[styles.rowDomi, seleccionadoUid === domi.uid && styles.rowDomiSelected]}
+                  style={[
+                    styles.rowDomi,
+                    {
+                      borderColor:
+                        seleccionadoUid === domi.uid ? theme.colors.primary : theme.colors.border,
+                      backgroundColor:
+                        seleccionadoUid === domi.uid
+                          ? theme.colors.primaryLight
+                          : theme.colors.surfaceSecondary,
+                    },
+                  ]}
                   onPress={() => setSeleccionadoUid(domi.uid)}
                 >
-                  <Text style={styles.textStrong}>{domi.nombre}</Text>
-                  <Text style={styles.text}>Cédula: {domi.cedula}</Text>
-                  <Text style={styles.text}>{domi.pedidosActivos} pedidos activos</Text>
+                  <Text style={[styles.textStrong, { color: theme.colors.text }]}>{domi.nombre}</Text>
+                  <Text style={[styles.text, { color: theme.colors.textSecondary }]}>Cédula: {domi.cedula}</Text>
+                  <Text style={[styles.text, { color: theme.colors.textSecondary }]}>
+                    {domi.pedidosActivos} pedidos activos
+                  </Text>
                 </Pressable>
               ))}
             </View>
@@ -170,46 +227,41 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, gap: 12 },
   section: { gap: 10 },
-  sectionTitle: { color: '#0f172a', fontWeight: '700', fontSize: 16 },
-  text: { color: '#334155', fontSize: 14, lineHeight: 20 },
-  textStrong: { color: '#0f172a', fontWeight: '700', fontSize: 14 },
-  rowPedido: { borderWidth: 1, borderColor: '#dbe4ee', borderRadius: 12, padding: 10, gap: 6 },
+  sectionTitle: { fontWeight: '700', fontSize: 16 },
+  text: { fontSize: 14, lineHeight: 20 },
+  textStrong: { fontWeight: '700', fontSize: 14 },
+  rowPedido: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 6 },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chipEntrega: {
     borderWidth: 1,
-    borderColor: '#0f766e',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 3,
-    color: '#0f766e',
     fontWeight: '700',
     fontSize: 12,
   },
   actionWrap: { alignItems: 'flex-end' },
   btnAsignar: {
     borderWidth: 1,
-    borderColor: '#0f766e',
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  btnAsignarText: { color: '#0f766e', fontWeight: '700', fontSize: 12 },
+  btnAsignarText: { fontWeight: '700', fontSize: 12 },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     padding: 20,
   },
   modalCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#dbe4ee',
     padding: 14,
     gap: 10,
     maxHeight: '80%',
   },
   listDomWrap: { gap: 8 },
-  rowDomi: { borderWidth: 1, borderColor: '#dbe4ee', borderRadius: 12, padding: 10, gap: 2 },
-  rowDomiSelected: { borderColor: '#0f766e', backgroundColor: '#f0fdfa' },
+  rowDomi: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 2 },
 });
+
