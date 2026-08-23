@@ -5,11 +5,19 @@ export const LoadingOverlay = ({ texto = 'Cargando...' }: { texto?: string }) =>
   const { theme } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.loadingBg }]}> 
-      <View style={styles.pulse}>
-        <ActivityIndicator size="large" color="#0f766e" />
+    <View style={[styles.container, { backgroundColor: theme.colors.loadingBg }]}> 
+      <View
+        style={[
+          styles.pulse,
+          {
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.border,
+          },
+        ]}
+      >
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
-      <Text style={[styles.texto, { color: theme.loadingText }]}>{texto}</Text>
+      <Text style={[styles.texto, { color: theme.colors.loadingText }]}>{texto}</Text>
     </View>
   );
 };
@@ -20,7 +28,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#eef4f8',
   },
   pulse: {
     width: 72,
@@ -28,18 +35,15 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#dbe4ee',
-    shadowColor: '#0f172a',
+    shadowColor: '#000000',
     shadowOpacity: 0.08,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
   },
   texto: {
-    color: '#0f172a',
     fontSize: 15,
     fontWeight: '600',
   },
-});
+});

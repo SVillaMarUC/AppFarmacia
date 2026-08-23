@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/services/firebase/config';
 import type { Pedido } from '@/types';
 
 export default function PedidosAsignadosScreen() {
   const { perfil } = useAuth();
+  const { theme } = useTheme();
   const [disponible, setDisponible] = useState<boolean>(true);
   const [actualizandoDisponibilidad, setActualizandoDisponibilidad] = useState(false);
   const [pedidoActivo, setPedidoActivo] = useState<Pedido | null>(null);
@@ -120,27 +122,52 @@ export default function PedidosAsignadosScreen() {
 
         <Card>
           <View style={styles.estadoRow}>
-            <Text style={styles.estadoLabel}>Estado:</Text>
-            <Pressable onPress={toggleDisponibilidad} style={[styles.estadoPill, disponible ? styles.disponiblePill : styles.noDisponiblePill]}>
+            <Text style={[styles.estadoLabel, { color: theme.colors.text }]}>Estado:</Text>
+            <Pressable
+              onPress={toggleDisponibilidad}
+              style={[
+                styles.estadoPill,
+                {
+                  backgroundColor: disponible
+                    ? theme.colors.primaryLight
+                    : theme.colors.surfaceSecondary,
+                },
+              ]}
+            >
               {actualizandoDisponibilidad ? (
-                <ActivityIndicator color="#0f766e" size="small" />
+                <ActivityIndicator color={theme.colors.primary} size="small" />
               ) : (
-                <Text style={[styles.estadoTexto, disponible ? styles.disponibleTexto : styles.noDisponibleTexto]}>
+                <Text
+                  style={[
+                    styles.estadoTexto,
+                    {
+                      color: disponible ? theme.colors.primary : theme.colors.textMuted,
+                    },
+                  ]}
+                >
                   {disponible ? 'Disponible' : 'No disponible'}
                 </Text>
               )}
             </Pressable>
           </View>
-          <Text style={styles.info}>Pedidos activos: {totalActivos}</Text>
+          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+            Pedidos activos: {totalActivos}
+          </Text>
         </Card>
 
         {pedidoActivo ? (
           <Card>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Entrega activa</Text>
-              <Text style={styles.info}>Paciente: {pedidoActivo.usuarioId}</Text>
-              <Text style={styles.info}>Dirección: {pedidoActivo.direccionEntrega?.direccion ?? 'Sin dirección'}</Text>
-              <Text style={styles.info}>Medicamentos: {pedidoActivo.medicamentos.map((m) => m.nombre).join(', ')}</Text>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Entrega activa</Text>
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                Paciente: {pedidoActivo.usuarioId}
+              </Text>
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                Dirección: {pedidoActivo.direccionEntrega?.direccion ?? 'Sin dirección'}
+              </Text>
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                Medicamentos: {pedidoActivo.medicamentos.map((m) => m.nombre).join(', ')}
+              </Text>
               <Button texto="Marcar como entregado" onPress={marcarEntregado} />
             </View>
           </Card>
@@ -148,23 +175,48 @@ export default function PedidosAsignadosScreen() {
 
         <Card>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pedidos asignados</Text>
-            {!pedidosAsignados.length ? <Text style={styles.info}>No tienes pedidos asignados en este momento.</Text> : null}
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Pedidos asignados</Text>
+            {!pedidosAsignados.length ? (
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                No tienes pedidos asignados en este momento.
+              </Text>
+            ) : null}
             {pedidosAsignados.map((pedido) => {
               const expandido = expandidoId === pedido.id;
               return (
                 <Pressable
                   key={pedido.id}
-                  style={styles.rowPedido}
+                  style={[
+                    styles.rowPedido,
+                    {
+                      borderColor: theme.colors.border,
+                      backgroundColor: theme.colors.surfaceSecondary,
+                    },
+                  ]}
                   onPress={() => setExpandidoId((prev) => (prev === pedido.id ? null : pedido.id))}
                 >
-                  <Text style={styles.rowMain}>{pedido.direccionEntrega?.direccion ?? 'Sin dirección'}</Text>
-                  <Text style={styles.info}>Medicamentos: {pedido.medicamentos.map((m) => m.nombre).join(', ')}</Text>
-                  <Text style={styles.info}>Tiempo esperando: {tiempoEsperando(pedido)}</Text>
+                  <Text style={[styles.rowMain, { color: theme.colors.text }]}>
+                    {pedido.direccionEntrega?.direccion ?? 'Sin dirección'}
+                  </Text>
+                  <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                    Medicamentos: {pedido.medicamentos.map((m) => m.nombre).join(', ')}
+                  </Text>
+                  <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                    Tiempo esperando: {tiempoEsperando(pedido)}
+                  </Text>
                   {expandido ? (
-                    <View style={styles.detalleExpandido}>
-                      <Text style={styles.info}>Modo de entrega: {pedido.modoEntrega}</Text>
-                      <Text style={styles.info}>Estado: {pedido.estado}</Text>
+                    <View
+                      style={[
+                        styles.detalleExpandido,
+                        { borderTopColor: theme.colors.borderLight },
+                      ]}
+                    >
+                      <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                        Modo de entrega: {pedido.modoEntrega}
+                      </Text>
+                      <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                        Estado: {pedido.estado}
+                      </Text>
                     </View>
                   ) : null}
                 </Pressable>
@@ -181,7 +233,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, gap: 12 },
   estadoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  estadoLabel: { color: '#0f172a', fontWeight: '700', fontSize: 14 },
+  estadoLabel: { fontWeight: '700', fontSize: 14 },
   estadoPill: {
     borderRadius: 999,
     paddingHorizontal: 12,
@@ -189,15 +241,12 @@ const styles = StyleSheet.create({
     minWidth: 122,
     alignItems: 'center',
   },
-  disponiblePill: { backgroundColor: '#f0fdfa' },
-  noDisponiblePill: { backgroundColor: '#f8fafc' },
   estadoTexto: { fontWeight: '700', fontSize: 14 },
-  disponibleTexto: { color: '#0f766e' },
-  noDisponibleTexto: { color: '#64748b' },
   section: { gap: 8 },
-  sectionTitle: { color: '#0f172a', fontWeight: '700', fontSize: 16 },
-  info: { color: '#334155', fontSize: 14, lineHeight: 20 },
-  rowPedido: { borderWidth: 1, borderColor: '#dbe4ee', borderRadius: 12, padding: 10, gap: 4 },
-  rowMain: { color: '#0f172a', fontWeight: '700', fontSize: 14 },
-  detalleExpandido: { marginTop: 4, borderTopWidth: 1, borderTopColor: '#dbe4ee', paddingTop: 6, gap: 2 },
+  sectionTitle: { fontWeight: '700', fontSize: 16 },
+  info: { fontSize: 14, lineHeight: 20 },
+  rowPedido: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 4 },
+  rowMain: { fontWeight: '700', fontSize: 14 },
+  detalleExpandido: { marginTop: 4, borderTopWidth: 1, paddingTop: 6, gap: 2 },
 });
+

@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { firestoreService } from '@/services/firebase/firestore.service';
 import { ocrService } from '@/services/ocr.service';
@@ -14,6 +16,7 @@ import type { Direccion, Medicamento } from '@/types';
 
 export default function NuevaSolicitudScreen() {
   const { perfil } = useAuth();
+  const { theme } = useTheme();
   const [paso, setPaso] = useState(1);
   const [tipoSolicitud, setTipoSolicitud] = useState<'ocr' | 'manual'>('ocr');
   const [imagenUri, setImagenUri] = useState<string | null>(null);
@@ -22,6 +25,7 @@ export default function NuevaSolicitudScreen() {
   const [modoEntrega, setModoEntrega] = useState<'domicilio' | 'recogida'>('domicilio');
   const [indiceDireccion, setIndiceDireccion] = useState(0);
   const [loading, setLoading] = useState(false);
+
 
   const seleccionarImagen = async (desdeCamara: boolean) => {
     try {
@@ -174,7 +178,15 @@ export default function NuevaSolicitudScreen() {
 
   return (
     <Screen>
-      <View style={styles.pasosHeader}>
+      <View
+        style={[
+          styles.pasosHeader,
+          {
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: theme.colors.borderLight,
+          },
+        ]}
+      >
         {[
           ['1', 'Tipo'],
           ['2', 'Medicamentos'],
@@ -184,39 +196,84 @@ export default function NuevaSolicitudScreen() {
           const activo = paso === index + 1;
           return (
             <View key={numero} style={styles.pasoItem}>
-              <View style={[styles.pasoCirculo, activo ? styles.pasoCirculoActivo : styles.pasoCirculoInactivo]}>
-                <Text style={[styles.pasoNumero, activo ? styles.pasoNumeroActivo : styles.pasoNumeroInactivo]}>{numero}</Text>
+              <View
+                style={[
+                  styles.pasoCirculo,
+                  activo
+                    ? { backgroundColor: theme.colors.primary }
+                    : { backgroundColor: theme.colors.surfaceSecondary },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.pasoNumero,
+                    activo ? styles.pasoNumeroActivo : { color: theme.colors.textMuted },
+                  ]}
+                >
+                  {numero}
+                </Text>
               </View>
-              <Text style={styles.pasoLabel}>{label}</Text>
+              <Text
+                style={[
+                  styles.pasoLabel,
+                  { color: activo ? theme.colors.primary : theme.colors.textSecondary },
+                ]}
+              >
+                {label}
+              </Text>
             </View>
           );
         })}
       </View>
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.kicker}>Solicitud digital</Text>
-          <Text style={styles.titulo}>Nueva solicitud de medicamentos</Text>
-          <Text style={styles.subtitulo}>Puedes crear el pedido con receta por imagen o cargar los medicamentos manualmente.</Text>
-        </View>
+        <ScreenHeader
+          kicker="Solicitud digital"
+          title="Nueva solicitud"
+          subtitle="Puedes crear el pedido con receta por imagen o cargar los medicamentos manualmente."
+        />
 
         {paso === 1 ? (
           <Card>
-            <Text style={styles.subtituloSeccion}>Tipo de solicitud</Text>
+            <Text style={[styles.subtituloSeccion, { color: theme.colors.text }]}>Tipo de solicitud</Text>
             <View style={styles.toggleCardsWrap}>
               <TouchableOpacity
-                style={[styles.toggleCard, tipoSolicitud === 'ocr' ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                style={[
+                  styles.toggleCard,
+                  {
+                    backgroundColor:
+                      tipoSolicitud === 'ocr'
+                        ? theme.colors.primaryLight
+                        : theme.colors.surfaceSecondary,
+                    borderColor:
+                      tipoSolicitud === 'ocr' ? theme.colors.primary : theme.colors.borderLight,
+                  },
+                ]}
                 onPress={() => setTipoSolicitud('ocr')}
               >
-                <Text style={styles.toggleTitle}>Con receta</Text>
-                <Text style={styles.toggleSub}>Sube una foto de tu receta médica</Text>
+                <Text style={[styles.toggleTitle, { color: theme.colors.text }]}>Con receta</Text>
+                <Text style={[styles.toggleSub, { color: theme.colors.textSecondary }]}>
+                  Sube una foto de tu receta médica
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.toggleCard, tipoSolicitud === 'manual' ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                style={[
+                  styles.toggleCard,
+                  {
+                    backgroundColor:
+                      tipoSolicitud === 'manual'
+                        ? theme.colors.primaryLight
+                        : theme.colors.surfaceSecondary,
+                    borderColor:
+                      tipoSolicitud === 'manual' ? theme.colors.primary : theme.colors.borderLight,
+                  },
+                ]}
                 onPress={() => setTipoSolicitud('manual')}
               >
-                <Text style={styles.toggleTitle}>Manual</Text>
-                <Text style={styles.toggleSub}>Ingresa los medicamentos directamente</Text>
+                <Text style={[styles.toggleTitle, { color: theme.colors.text }]}>Manual</Text>
+                <Text style={[styles.toggleSub, { color: theme.colors.textSecondary }]}>
+                  Ingresa los medicamentos directamente
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -231,7 +288,9 @@ export default function NuevaSolicitudScreen() {
               </View>
             ) : null}
 
-            {tipoSolicitud === 'ocr' && imagenUri ? <Image source={{ uri: imagenUri }} style={styles.preview} /> : null}
+            {tipoSolicitud === 'ocr' && imagenUri ? (
+              <Image source={{ uri: imagenUri }} style={[styles.preview, { borderColor: theme.colors.border }]} />
+            ) : null}
 
             <View style={styles.accionPrincipal}>
               <Button texto="Siguiente" onPress={avanzarDesdePaso1} />
@@ -242,8 +301,14 @@ export default function NuevaSolicitudScreen() {
         {paso === 2 ? (
           <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
             <Card>
-              <Text style={styles.subtituloSeccion}>{tipoSolicitud === 'ocr' ? 'Medicamentos detectados (editable)' : 'Medicamentos (manual)'}</Text>
-              {tipoSolicitud === 'ocr' && medicamentos.length === 0 ? <Text style={styles.texto}>Sin medicamentos detectados aún.</Text> : null}
+              <Text style={[styles.subtituloSeccion, { color: theme.colors.text }]}>
+                {tipoSolicitud === 'ocr' ? 'Medicamentos detectados (editable)' : 'Medicamentos (manual)'}
+              </Text>
+              {tipoSolicitud === 'ocr' && medicamentos.length === 0 ? (
+                <Text style={[styles.texto, { color: theme.colors.textSecondary }]}>
+                  Sin medicamentos detectados aún.
+                </Text>
+              ) : null}
 
               {tipoSolicitud === 'manual' ? (
                 <ManualMedicationForm
@@ -284,41 +349,89 @@ export default function NuevaSolicitudScreen() {
 
         {paso === 3 ? (
           <Card>
-            <Text style={styles.subtituloSeccion}>Entrega</Text>
-            <Text style={styles.texto}>Modo de entrega</Text>
+            <Text style={[styles.subtituloSeccion, { color: theme.colors.text }]}>Entrega</Text>
+            <Text style={[styles.texto, { color: theme.colors.textSecondary }]}>Modo de entrega</Text>
 
             <View style={styles.toggleCardsWrap}>
               <TouchableOpacity
-                style={[styles.toggleCard, modoEntrega === 'domicilio' ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                style={[
+                  styles.toggleCard,
+                  {
+                    backgroundColor:
+                      modoEntrega === 'domicilio'
+                        ? theme.colors.primaryLight
+                        : theme.colors.surfaceSecondary,
+                    borderColor:
+                      modoEntrega === 'domicilio' ? theme.colors.primary : theme.colors.borderLight,
+                  },
+                ]}
                 onPress={() => setModoEntrega('domicilio')}
               >
-                <Text style={styles.toggleTitle}>A domicilio</Text>
+                <Text style={[styles.toggleTitle, { color: theme.colors.text }]}>A domicilio</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.toggleCard, modoEntrega === 'recogida' ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                style={[
+                  styles.toggleCard,
+                  {
+                    backgroundColor:
+                      modoEntrega === 'recogida'
+                        ? theme.colors.primaryLight
+                        : theme.colors.surfaceSecondary,
+                    borderColor:
+                      modoEntrega === 'recogida' ? theme.colors.primary : theme.colors.borderLight,
+                  },
+                ]}
                 onPress={() => setModoEntrega('recogida')}
               >
-                <Text style={styles.toggleTitle}>Recoger en punto</Text>
+                <Text style={[styles.toggleTitle, { color: theme.colors.text }]}>Recoger en punto</Text>
               </TouchableOpacity>
             </View>
 
             {modoEntrega === 'domicilio' ? (
               <View style={styles.direccionBox}>
-                <Text style={styles.texto}>Ciudad de entrega</Text>
-                <View style={styles.infoBox}>
-                  <Text style={styles.infoValue}>{perfil?.ciudad ?? 'No registrada'}</Text>
+                <Text style={[styles.texto, { color: theme.colors.textSecondary }]}>Ciudad de entrega</Text>
+                <View
+                  style={[
+                    styles.infoBox,
+                    {
+                      backgroundColor: theme.colors.surfaceSecondary,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.infoValue, { color: theme.colors.text }]}>
+                    {perfil?.ciudad ?? 'No registrada'}
+                  </Text>
                 </View>
 
-                <Text style={styles.texto}>Dirección de entrega</Text>
-                {!perfil?.direcciones?.length ? <Text style={styles.texto}>No tienes direcciones registradas en tu perfil.</Text> : null}
+                <Text style={[styles.texto, { color: theme.colors.textSecondary }]}>Dirección de entrega</Text>
+                {!perfil?.direcciones?.length ? (
+                  <Text style={[styles.texto, { color: theme.colors.textSecondary }]}>
+                    No tienes direcciones registradas en tu perfil.
+                  </Text>
+                ) : null}
                 {perfil?.direcciones?.map((direccion, index) => (
                   <TouchableOpacity
                     key={`${direccion.direccion}-${index}`}
-                    style={[styles.toggleCard, indiceDireccion === index ? styles.toggleCardSelected : styles.toggleCardDefault]}
+                    style={[
+                      styles.toggleCard,
+                      {
+                        backgroundColor:
+                          indiceDireccion === index
+                            ? theme.colors.primaryLight
+                            : theme.colors.surfaceSecondary,
+                        borderColor:
+                          indiceDireccion === index ? theme.colors.primary : theme.colors.borderLight,
+                      },
+                    ]}
                     onPress={() => setIndiceDireccion(index)}
                   >
-                    <Text style={styles.toggleTitle}>{direccion.etiqueta}</Text>
-                    <Text style={styles.toggleSub}>{direccion.direccion}</Text>
+                    <Text style={[styles.toggleTitle, { color: theme.colors.text }]}>
+                      {direccion.etiqueta}
+                    </Text>
+                    <Text style={[styles.toggleSub, { color: theme.colors.textSecondary }]}>
+                      {direccion.direccion}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -337,15 +450,37 @@ export default function NuevaSolicitudScreen() {
 
         {paso === 4 ? (
           <Card>
-            <Text style={styles.subtituloSeccion}>Confirmar</Text>
+            <Text style={[styles.subtituloSeccion, { color: theme.colors.text }]}>Confirmar</Text>
             <View style={styles.formList}>
-              <Text style={styles.info}>Tipo: {getResumenTipo()}</Text>
-              <Text style={styles.info}>Medicamentos: {medicamentoResumen || 'Sin medicamentos'}</Text>
-              <Text style={styles.info}>Modo de entrega: {getResumenEntrega()}</Text>
-              <Text style={styles.info}>
-                {modoEntrega === 'domicilio'
-                  ? `Dirección: ${perfil?.direcciones?.[indiceDireccion]?.direccion ?? 'No definida'}`
-                  : `Ciudad: ${perfil?.ciudad ?? 'No registrada'}`}
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                Tipo: <Text style={{ color: theme.colors.text, fontWeight: '700' }}>{getResumenTipo()}</Text>
+              </Text>
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                Medicamentos:{' '}
+                <Text style={{ color: theme.colors.text, fontWeight: '700' }}>
+                  {medicamentoResumen || 'Sin medicamentos'}
+                </Text>
+              </Text>
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                Modo de entrega:{' '}
+                <Text style={{ color: theme.colors.text, fontWeight: '700' }}>{getResumenEntrega()}</Text>
+              </Text>
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                {modoEntrega === 'domicilio' ? (
+                  <>
+                    Dirección:{' '}
+                    <Text style={{ color: theme.colors.text, fontWeight: '700' }}>
+                      {perfil?.direcciones?.[indiceDireccion]?.direccion ?? 'No definida'}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    Ciudad:{' '}
+                    <Text style={{ color: theme.colors.text, fontWeight: '700' }}>
+                      {perfil?.ciudad ?? 'No registrada'}
+                    </Text>
+                  </>
+                )}
               </Text>
             </View>
 
@@ -370,6 +505,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 14,
     paddingTop: 6,
+    paddingBottom: 32,
   },
   pasosHeader: {
     flexDirection: 'row',
@@ -377,7 +513,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
-    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
   },
   pasoItem: {
     alignItems: 'center',
@@ -391,12 +527,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  pasoCirculoActivo: {
-    backgroundColor: '#0f766e',
-  },
-  pasoCirculoInactivo: {
-    backgroundColor: '#f1f5f9',
-  },
   pasoNumero: {
     fontSize: 12,
     fontWeight: '700',
@@ -404,46 +534,17 @@ const styles = StyleSheet.create({
   pasoNumeroActivo: {
     color: '#ffffff',
   },
-  pasoNumeroInactivo: {
-    color: '#94a3b8',
-  },
   pasoLabel: {
-    color: '#334155',
     fontSize: 12,
     textAlign: 'center',
-  },
-  hero: {
-    gap: 6,
-  },
-  kicker: {
-    color: '#0f766e',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-    fontSize: 12,
-  },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.4,
-  },
-  subtitulo: {
-    color: '#334155',
-    lineHeight: 20,
+    fontWeight: '600',
   },
   subtituloSeccion: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0f172a',
   },
   texto: {
-    color: '#334155',
-  },
-  nota: {
-    color: '#475569',
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
   },
   filaBotones: {
     flexDirection: 'row',
@@ -466,7 +567,6 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#dbe4ee',
   },
   direccionBox: {
     gap: 8,
@@ -482,36 +582,25 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 4,
   },
-  toggleCardSelected: {
-    borderColor: '#0f766e',
-    backgroundColor: '#f0fdfa',
-  },
-  toggleCardDefault: {
-    borderColor: '#dbe4ee',
-    backgroundColor: '#ffffff',
-  },
   toggleTitle: {
-    color: '#0f172a',
     fontWeight: '700',
   },
   toggleSub: {
-    color: '#334155',
+    fontSize: 13,
   },
   infoBox: {
     borderWidth: 1,
-    borderColor: '#dbe4ee',
     borderRadius: 12,
     padding: 10,
-    backgroundColor: '#f8fafc',
   },
   infoValue: {
-    color: '#334155',
     fontWeight: '600',
   },
   info: {
-    color: '#334155',
+    lineHeight: 22,
+    fontSize: 14,
   },
   botonAtrasSolo: {
     marginTop: 10,
   },
-});
+});

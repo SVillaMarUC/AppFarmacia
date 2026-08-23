@@ -39,12 +39,12 @@ export const Input = ({
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: theme.inputLabel }]}>{label}</Text>
+      <Text style={[styles.label, { color: theme.colors.inputLabel }]}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor={theme.colors.inputPlaceholder}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize ?? (secureTextEntry ? 'none' : undefined)}
@@ -57,12 +57,20 @@ export const Input = ({
         onBlur={() => setFocused(false)}
         style={[
           styles.input,
-          { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText },
+          {
+            backgroundColor: theme.colors.inputBg,
+            borderColor: focused
+              ? theme.colors.primary
+              : error
+              ? theme.colors.error
+              : theme.colors.inputBorder,
+            color: theme.colors.inputText,
+          },
           focused && styles.inputFocused,
           error && styles.inputError,
         ]}
       />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={[styles.error, { color: theme.colors.error }]}>{error}</Text> : null}
     </View>
   );
 };
@@ -72,33 +80,27 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    color: '#0f172a',
     fontSize: 14,
     fontWeight: '700',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d5dee8',
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
-    shadowColor: '#0f172a',
+    shadowColor: '#000000',
     shadowOpacity: 0.03,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
   },
   inputFocused: {
-    borderColor: '#0f766e',
     shadowOpacity: 0.08,
   },
   inputError: {
-    borderColor: '#dc2626',
+    borderWidth: 1.5,
   },
   error: {
-    color: '#dc2626',
     fontSize: 12,
     fontWeight: '600',
   },
-});
+});

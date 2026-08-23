@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
+import { StatusBar } from 'react-native';
 import { Slot, usePathname, useRouter, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider } from '@/context/AuthContext';
 import { PedidoProvider } from '@/context/PedidoContext';
-import { ThemeProvider } from '@/context/ThemeContext';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
 
@@ -64,6 +65,28 @@ const Guard = () => {
   return <Slot />;
 };
 
+function RootContent({ fontsLoaded, fontError }: { fontsLoaded: boolean; fontError: Error | null }) {
+  const { isDark, theme } = useTheme();
+
+  return (
+    <>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.colors.background}
+      />
+      <AuthProvider>
+        <PedidoProvider>
+          {!fontsLoaded && !fontError ? (
+            <LoadingOverlay texto="Cargando recursos..." />
+          ) : (
+            <Guard />
+          )}
+        </PedidoProvider>
+      </AuthProvider>
+    </>
+  );
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
@@ -77,15 +100,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <PedidoProvider>
-          {!fontsLoaded && !fontError ? (
-            <LoadingOverlay texto="Cargando recursos..." />
-          ) : (
-            <Guard />
-          )}
-        </PedidoProvider>
-      </AuthProvider>
+      <RootContent fontsLoaded={fontsLoaded} fontError={fontError} />
     </ThemeProvider>
   );
-}
+}
