@@ -10,7 +10,7 @@
   - **Fuera de alcance:** Pagos dentro de la aplicación (los costos son asumidos bajo políticas de EPS/afiliación o configurados para no cobro directo por pasarela en esta versión).
 
 ## 2. Stack Tecnológico
-- **Lenguaje / Frameworks:** TypeScript, React Native, Expo (SDK 57), Expo Router para enrutamiento basado en archivos.
+- **Lenguaje / Frameworks:** TypeScript, React Native, Expo (SDK 54), Expo Router para enrutamiento basado en archivos.
 - **Base de Datos / Almacenamiento:** Firebase Suite (Firebase Auth para autenticación, Cloud Firestore para base de datos NoSQL, Firebase Storage para archivos/recetas médicas).
 - **Bibliotecas / Dependencias Clave:**
   - `react-native-maps`: Visualización de mapas y rastreo geográfico.
