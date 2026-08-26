@@ -6,7 +6,7 @@ App móvil Expo + React Native para flujos de afiliado, despachador, domiciliari
 
 - Node.js 20+
 - npm 10+
-- Expo SDK 57
+- Expo SDK 54
 - Cuenta Firebase configurada
 - Herramienta EAS CLI (`npx eas-cli` o instalado globalmente vía `npm install -g eas-cli`)
 
