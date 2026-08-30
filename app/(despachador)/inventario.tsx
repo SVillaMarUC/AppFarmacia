@@ -1,71 +1,103 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { addDoc, collection, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import {
+  Alert,
+  FlatList,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { StockIndicator } from '@/components/shared/StockIndicator';
 import { useTheme } from '@/context/ThemeContext';
-import { db } from '@/services/firebase/config';
+import { medicationService } from '@/services/medication.service';
+import type { ItemInventario } from '@/types';
 
-type InventarioItem = {
-  id: string;
-  nombre: string;
-  cantidad: number;
-  unidad?: string;
-  descripcion?: string;
-};
+type FiltroTipo = 'todos' | 'receta' | 'stock_bajo' | 'vencimiento' | 'inactivos';
 
 type FormInventario = {
   nombre: string;
-  cantidad: string;
+  principioActivo: string;
+  concentracion: string;
+  presentacion: string;
   unidad: string;
-  descripcion: string;
+  requiereReceta: boolean;
+  stock: string;
+  stockMinimo: string;
+  lote: string;
+  fechaVencimiento: string;
+  activo: boolean;
 };
 
 const initialForm: FormInventario = {
   nombre: '',
-  cantidad: '',
+  principioActivo: '',
+  concentracion: '',
+  presentacion: '',
   unidad: '',
-  descripcion: '',
+  requiereReceta: false,
+  stock: '0',
+  stockMinimo: '5',
+  lote: '',
+  fechaVencimiento: '',
+  activo: true,
 };
 
 export default function InventarioScreen() {
   const { theme } = useTheme();
   const [search, setSearch] = useState('');
-  const [items, setItems] = useState<InventarioItem[]>([]);
+  const [filtro, setFiltro] = useState<FiltroTipo>('todos');
+  const [items, setItems] = useState<ItemInventario[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [form, setForm] = useState<FormInventario>(initialForm);
+  const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, 'inventario'),
-      (snapshot) => {
-        setItems(
-          snapshot.docs.map((d) => {
-            const data = d.data() as Record<string, unknown>;
-            return {
-              id: d.id,
-              nombre: String(data.nombre ?? ''),
-              cantidad: Number(data.cantidad ?? data.stock ?? 0),
-              unidad: data.unidad ? String(data.unidad) : '',
-              descripcion: data.descripcion ? String(data.descripcion) : '',
-            };
-          })
-        );
-      },
-      () => Alert.alert('Error', 'No fue posible cargar inventario.')
-    );
-
+    const unsub = medicationService.escucharInventario((data) => {
+      setItems(data);
+    });
     return unsub;
   }, []);
 
-  const filtrados = useMemo(() => {
+  const itemsFiltrados = useMemo(() => {
+    let filtrados = [...items];
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((item) => item.nombre.toLowerCase().includes(q));
-  }, [items, search]);
+
+    if (q) {
+      filtrados = filtrados.filter(
+        (it) =>
+          it.nombre.toLowerCase().includes(q) ||
+          (it.principioActivo && it.principioActivo.toLowerCase().includes(q)) ||
+          (it.lote && it.lote.toLowerCase().includes(q))
+      );
+    }
+
+    if (filtro === 'receta') {
+      filtrados = filtrados.filter((it) => it.requiereReceta);
+    } else if (filtro === 'stock_bajo') {
+      filtrados = filtrados.filter((it) => it.stock <= it.stockMinimo);
+    } else if (filtro === 'vencimiento') {
+      filtrados = filtrados.filter((it) => {
+        const ev = medicationService.evaluarVencimiento(it.fechaVencimiento);
+        return ev.estado === 'proximo_a_vencer' || ev.estado === 'vencido';
+      });
+    } else if (filtro === 'inactivos') {
+      filtrados = filtrados.filter((it) => !it.activo);
+    }
+
+    return filtrados;
+  }, [items, search, filtro]);
 
   const abrirAgregar = () => {
     setEditandoId(null);
@@ -73,40 +105,81 @@ export default function InventarioScreen() {
     setModalVisible(true);
   };
 
-  const abrirEditar = (item: InventarioItem) => {
+  const abrirEditar = (item: ItemInventario) => {
     setEditandoId(item.id);
+    let fechaStr = '';
+    if (item.fechaVencimiento) {
+      if (typeof item.fechaVencimiento === 'string') {
+        fechaStr = item.fechaVencimiento;
+      } else if (item.fechaVencimiento instanceof Date) {
+        fechaStr = item.fechaVencimiento.toISOString().slice(0, 10);
+      } else if (typeof item.fechaVencimiento === 'object' && 'toDate' in item.fechaVencimiento) {
+        fechaStr = (item.fechaVencimiento as { toDate: () => Date }).toDate().toISOString().slice(0, 10);
+      }
+    }
+
     setForm({
       nombre: item.nombre,
-      cantidad: String(item.cantidad),
+      principioActivo: item.principioActivo ?? '',
+      concentracion: item.concentracion ?? '',
+      presentacion: item.presentacion ?? '',
       unidad: item.unidad ?? '',
-      descripcion: item.descripcion ?? '',
+      requiereReceta: Boolean(item.requiereReceta),
+      stock: String(item.stock),
+      stockMinimo: String(item.stockMinimo),
+      lote: item.lote ?? '',
+      fechaVencimiento: fechaStr,
+      activo: item.activo !== false,
     });
     setModalVisible(true);
   };
 
   const guardar = async () => {
-    if (!form.nombre.trim() || !form.cantidad.trim()) {
-      Alert.alert('Datos requeridos', 'Nombre y cantidad son obligatorios.');
+    if (!form.nombre.trim()) {
+      Alert.alert('Campo obligatorio', 'El nombre del medicamento es requerido.');
       return;
     }
 
-    const payload = {
-      nombre: form.nombre.trim(),
-      cantidad: Number(form.cantidad.replace(/\D/g, '') || '0'),
-      unidad: form.unidad.trim(),
-      descripcion: form.descripcion.trim(),
-    };
+    const stockNum = Math.max(0, parseInt(form.stock.replace(/\D/g, '') || '0', 10));
+    const stockMinNum = Math.max(0, parseInt(form.stockMinimo.replace(/\D/g, '') || '0', 10));
 
     try {
+      setGuardando(true);
+      const payload: Partial<ItemInventario> = {
+        nombre: form.nombre.trim(),
+        principioActivo: form.principioActivo.trim() || undefined,
+        concentracion: form.concentracion.trim() || undefined,
+        presentacion: form.presentacion.trim() || undefined,
+        unidad: form.unidad.trim() || undefined,
+        requiereReceta: form.requiereReceta,
+        stock: stockNum,
+        stockMinimo: stockMinNum,
+        lote: form.lote.trim() || undefined,
+        fechaVencimiento: form.fechaVencimiento.trim() || null,
+        activo: form.activo,
+      };
+
       if (editandoId) {
-        await updateDoc(doc(db, 'inventario', editandoId), payload);
+        await medicationService.actualizarMedicamento(editandoId, payload);
+        Alert.alert('Actualizado', 'Medicamento actualizado correctamente.');
       } else {
-        await addDoc(collection(db, 'inventario'), payload);
+        await medicationService.crearMedicamento(payload as Omit<ItemInventario, 'id'>);
+        Alert.alert('Creado', 'Medicamento registrado exitosamente.');
       }
       setModalVisible(false);
       setForm(initialForm);
     } catch (error) {
-      Alert.alert('Error', 'No fue posible guardar el ítem.');
+      Alert.alert('Error', 'No fue posible guardar el medicamento.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const alternarActivo = async (item: ItemInventario) => {
+    try {
+      await medicationService.toggleActivo(item.id, item.activo);
+    } catch (error) {
+      Alert.alert('Error', 'No fue posible cambiar el estado del medicamento.');
     }
   };
 
@@ -115,208 +188,442 @@ export default function InventarioScreen() {
       <View style={styles.container}>
         <ScreenHeader
           kicker="Módulo Despachador"
-          title="Inventario de Farmacia"
-          subtitle="Consulta, filtra y gestiona el stock de medicamentos de la sede en tiempo real."
+          title="Inventario de Medicamentos"
+          subtitle="Administra el catálogo, stock, lotes, fechas de vencimiento y requerimiento de receta."
         />
 
-        <TextInput
-          style={[
-            styles.searchInput,
-            {
-              backgroundColor: theme.colors.inputBg,
-              borderColor: theme.colors.inputBorder,
-              color: theme.colors.inputText,
-            },
-          ]}
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Buscar medicamento por nombre..."
-          placeholderTextColor={theme.colors.inputPlaceholder}
-        />
+        <View style={styles.topActions}>
+          <TextInput
+            style={[
+              styles.searchInput,
+              {
+                backgroundColor: theme.colors.inputBg,
+                borderColor: theme.colors.inputBorder,
+                color: theme.colors.inputText,
+              },
+            ]}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Buscar por nombre, principio activo o lote..."
+            placeholderTextColor={theme.colors.inputPlaceholder}
+          />
+          <Button texto="+ Nuevo" onPress={abrirAgregar} />
+        </View>
+
+        {/* Filtros rápidos */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtrosRow}>
+          {[
+            { id: 'todos', label: `Todos (${items.length})` },
+            { id: 'receta', label: 'Con Receta' },
+            { id: 'stock_bajo', label: 'Stock Bajo' },
+            { id: 'vencimiento', label: 'Vencimiento Próximo' },
+            { id: 'inactivos', label: 'Inactivos' },
+          ].map((f) => {
+            const activo = filtro === f.id;
+            return (
+              <TouchableOpacity
+                key={f.id}
+                style={[
+                  styles.filtroChip,
+                  {
+                    backgroundColor: activo ? theme.colors.primary : theme.colors.surfaceSecondary,
+                    borderColor: activo ? theme.colors.primary : theme.colors.border,
+                  },
+                ]}
+                onPress={() => setFiltro(f.id as FiltroTipo)}
+              >
+                <Text
+                  style={[
+                    styles.filtroChipText,
+                    { color: activo ? '#ffffff' : theme.colors.textSecondary },
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         <FlatList
-          data={filtrados}
+          data={itemsFiltrados}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => abrirEditar(item)}>
+          renderItem={({ item }) => {
+            const venc = medicationService.evaluarVencimiento(item.fechaVencimiento);
+            return (
               <Card>
-                <View style={styles.itemRow}>
-                  <View>
-                    <Text style={[styles.itemNombre, { color: theme.colors.text }]}>{item.nombre}</Text>
-                    <Text style={[styles.itemDetalle, { color: theme.colors.textSecondary }]}>
-                      {item.cantidad} {item.unidad || ''}
-                    </Text>
+                <View style={styles.itemHeader}>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.tituloRow}>
+                      <Text style={[styles.itemTitulo, { color: theme.colors.text }]}>
+                        {item.nombre}
+                      </Text>
+                      {!item.activo ? (
+                        <View style={[styles.inactivoBadge, { backgroundColor: theme.colors.border }]}>
+                          <Text style={[styles.inactivoText, { color: theme.colors.textMuted }]}>
+                            Inactivo
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    {item.principioActivo || item.concentracion ? (
+                      <Text style={[styles.itemSub, { color: theme.colors.textSecondary }]}>
+                        {[item.principioActivo, item.concentracion, item.presentacion]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Text>
+                    ) : null}
                   </View>
-                  {item.cantidad < 10 ? (
-                    <Text
+
+                  <TouchableOpacity onPress={() => abrirEditar(item)} style={styles.btnEditar}>
+                    <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Metadata & Badges */}
+                <View style={styles.badgesWrap}>
+                  <StockIndicator stock={item.stock} stockMinimo={item.stockMinimo} />
+
+                  {item.requiereReceta ? (
+                    <View
                       style={[
-                        styles.stockBajo,
-                        {
-                          color: theme.colors.errorText,
-                          borderColor: theme.colors.error,
-                          backgroundColor: theme.colors.errorBg,
-                        },
+                        styles.badge,
+                        { backgroundColor: theme.colors.errorBg, borderColor: theme.colors.error },
                       ]}
                     >
-                      Stock bajo
-                    </Text>
+                      <Text style={[styles.badgeText, { color: theme.colors.errorText }]}>
+                        Requiere Receta
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {venc.estado !== 'sin_fecha' ? (
+                    <StockIndicator
+                      stock={item.stock}
+                      stockMinimo={item.stockMinimo}
+                      tipo="vencimiento"
+                      vencimientoEstado={venc.estado}
+                      diasRestantes={venc.diasRestantes}
+                    />
                   ) : null}
                 </View>
+
+                {/* Detalles técnicos */}
+                <View style={[styles.itemFooter, { borderTopColor: theme.colors.borderLight }]}>
+                  <Text style={[styles.itemDetalle, { color: theme.colors.textSecondary }]}>
+                    Stock: <Text style={{ fontWeight: '700', color: theme.colors.text }}>{item.stock}</Text> (Mín: {item.stockMinimo})
+                  </Text>
+                  {item.lote ? (
+                    <Text style={[styles.itemDetalle, { color: theme.colors.textSecondary }]}>
+                      Lote: <Text style={{ fontWeight: '700', color: theme.colors.text }}>{item.lote}</Text>
+                    </Text>
+                  ) : null}
+                  <TouchableOpacity onPress={() => alternarActivo(item)}>
+                    <Text
+                      style={[
+                        styles.toggleActivoText,
+                        { color: item.activo ? theme.colors.error : theme.colors.primary },
+                      ]}
+                    >
+                      {item.activo ? 'Desactivar' : 'Activar'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </Card>
-            </Pressable>
-          )}
+            );
+          }}
           ListEmptyComponent={
-            <Text style={[styles.itemDetalle, { color: theme.colors.textSecondary }]}>Sin resultados.</Text>
+            <Card>
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+                No se encontraron medicamentos en inventario.
+              </Text>
+            </Card>
           }
         />
 
-        <Pressable
-          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-          onPress={abrirAgregar}
-        >
-          <Text style={styles.fabText}>+</Text>
-        </Pressable>
-      </View>
+        {/* MODAL CREAR / EDITAR */}
+        <Modal visible={modalVisible} animationType="slide" transparent>
+          <View style={styles.modalBackdrop}>
+            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                  {editandoId ? 'Editar Medicamento' : 'Nuevo Medicamento'}
+                </Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
-      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalBackdrop}>
-          <View
-            style={[
-              styles.modalCard,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {editandoId ? 'Editar ítem' : 'Nuevo ítem'}
-            </Text>
-            <TextInput
-              style={[
-                styles.field,
-                {
-                  backgroundColor: theme.colors.inputBg,
-                  borderColor: theme.colors.inputBorder,
-                  color: theme.colors.inputText,
-                },
-              ]}
-              value={form.nombre}
-              onChangeText={(v) => setForm((prev) => ({ ...prev, nombre: v }))}
-              placeholder="Nombre"
-              placeholderTextColor={theme.colors.inputPlaceholder}
-            />
-            <TextInput
-              style={[
-                styles.field,
-                {
-                  backgroundColor: theme.colors.inputBg,
-                  borderColor: theme.colors.inputBorder,
-                  color: theme.colors.inputText,
-                },
-              ]}
-              value={form.cantidad}
-              onChangeText={(v) => setForm((prev) => ({ ...prev, cantidad: v }))}
-              placeholder="Cantidad"
-              keyboardType="numeric"
-              placeholderTextColor={theme.colors.inputPlaceholder}
-            />
-            <TextInput
-              style={[
-                styles.field,
-                {
-                  backgroundColor: theme.colors.inputBg,
-                  borderColor: theme.colors.inputBorder,
-                  color: theme.colors.inputText,
-                },
-              ]}
-              value={form.unidad}
-              onChangeText={(v) => setForm((prev) => ({ ...prev, unidad: v }))}
-              placeholder="Unidad (opcional)"
-              placeholderTextColor={theme.colors.inputPlaceholder}
-            />
-            <TextInput
-              style={[
-                styles.field,
-                styles.fieldArea,
-                {
-                  backgroundColor: theme.colors.inputBg,
-                  borderColor: theme.colors.inputBorder,
-                  color: theme.colors.inputText,
-                },
-              ]}
-              value={form.descripcion}
-              onChangeText={(v) => setForm((prev) => ({ ...prev, descripcion: v }))}
-              placeholder="Descripción (opcional)"
-              multiline
-              placeholderTextColor={theme.colors.inputPlaceholder}
-            />
-            <Button texto="Guardar" onPress={guardar} />
-            <Button texto="Cancelar" onPress={() => setModalVisible(false)} variant="secundario" />
+              <ScrollView contentContainerStyle={styles.modalForm}>
+                <Input
+                  label="Nombre Comercial *"
+                  value={form.nombre}
+                  onChangeText={(v) => setForm({ ...form, nombre: v })}
+                  placeholder="Ej: Dolex Forte"
+                />
+
+                <Input
+                  label="Principio Activo"
+                  value={form.principioActivo}
+                  onChangeText={(v) => setForm({ ...form, principioActivo: v })}
+                  placeholder="Ej: Acetaminofén"
+                />
+
+                <View style={styles.rowInputs}>
+                  <View style={{ flex: 1 }}>
+                    <Input
+                      label="Concentración"
+                      value={form.concentracion}
+                      onChangeText={(v) => setForm({ ...form, concentracion: v })}
+                      placeholder="Ej: 500mg"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Input
+                      label="Presentación"
+                      value={form.presentacion}
+                      onChangeText={(v) => setForm({ ...form, presentacion: v })}
+                      placeholder="Ej: Tabletas"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.rowInputs}>
+                  <View style={{ flex: 1 }}>
+                    <Input
+                      label="Stock Actual *"
+                      value={form.stock}
+                      keyboardType="numeric"
+                      onChangeText={(v) => setForm({ ...form, stock: v })}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Input
+                      label="Stock Mínimo"
+                      value={form.stockMinimo}
+                      keyboardType="numeric"
+                      onChangeText={(v) => setForm({ ...form, stockMinimo: v })}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.rowInputs}>
+                  <View style={{ flex: 1 }}>
+                    <Input
+                      label="Lote"
+                      value={form.lote}
+                      onChangeText={(v) => setForm({ ...form, lote: v })}
+                      placeholder="Ej: LOT-2026A"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Input
+                      label="Vencimiento (AAAA-MM-DD)"
+                      value={form.fechaVencimiento}
+                      onChangeText={(v) => setForm({ ...form, fechaVencimiento: v })}
+                      placeholder="2027-12-31"
+                    />
+                  </View>
+                </View>
+
+                {/* Switch Requiere Receta */}
+                <View style={[styles.switchRow, { borderColor: theme.colors.borderLight }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.switchTitle, { color: theme.colors.text }]}>
+                      ¿Requiere Receta Médica?
+                    </Text>
+                    <Text style={[styles.switchSub, { color: theme.colors.textSecondary }]}>
+                      Exige al afiliado cargar foto de fórmula médica
+                    </Text>
+                  </View>
+                  <Switch
+                    value={form.requiereReceta}
+                    onValueChange={(val) => setForm({ ...form, requiereReceta: val })}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  />
+                </View>
+
+                {/* Switch Activo */}
+                <View style={[styles.switchRow, { borderColor: theme.colors.borderLight }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.switchTitle, { color: theme.colors.text }]}>
+                      Medicamento Activo
+                    </Text>
+                    <Text style={[styles.switchSub, { color: theme.colors.textSecondary }]}>
+                      Visible para búsqueda y pedidos de afiliados
+                    </Text>
+                  </View>
+                  <Switch
+                    value={form.activo}
+                    onValueChange={(val) => setForm({ ...form, activo: val })}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  />
+                </View>
+
+                <View style={styles.modalBotones}>
+                  <Button texto="Guardar Medicamento" onPress={guardar} loading={guardando} />
+                  <Button texto="Cancelar" onPress={() => setModalVisible(false)} variant="secundario" />
+                </View>
+              </ScrollView>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  searchInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
+  container: {
+    flex: 1,
+    padding: 16,
+    gap: 12,
   },
-  listContent: { gap: 10, paddingBottom: 110 },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  itemNombre: { fontWeight: '700', fontSize: 14 },
-  itemDetalle: { fontSize: 14, lineHeight: 20 },
-  stockBajo: {
+  topActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
     borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+  },
+  filtrosRow: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 4,
+  },
+  filtroChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filtroChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  listContent: {
+    gap: 10,
+    paddingBottom: 24,
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  tituloRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  itemTitulo: {
+    fontSize: 15,
     fontWeight: '700',
+  },
+  itemSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  btnEditar: {
+    padding: 4,
+  },
+  inactivoBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  inactivoText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  badgesWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginVertical: 8,
+  },
+  badge: {
+    borderRadius: 999,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  itemFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+  },
+  itemDetalle: {
     fontSize: 12,
   },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+  toggleActivoText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
-  fabText: { color: '#ffffff', fontSize: 28, fontWeight: '700', marginTop: -2 },
+  emptyText: {
+    textAlign: 'center',
+    padding: 16,
+    fontSize: 13,
+  },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    padding: 20,
+    padding: 16,
   },
-  modalCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-    gap: 10,
+  modalContent: {
+    borderRadius: 16,
+    maxHeight: '90%',
+    overflow: 'hidden',
   },
-  modalTitle: { fontWeight: '800', fontSize: 18 },
-  field: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ccc',
   },
-  fieldArea: { minHeight: 80, textAlignVertical: 'top' },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  modalForm: {
+    padding: 16,
+    gap: 12,
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+  },
+  switchTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  switchSub: {
+    fontSize: 11,
+  },
+  modalBotones: {
+    gap: 8,
+    marginTop: 8,
+  },
 });
-

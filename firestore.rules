@@ -36,7 +36,7 @@ service cloud.firestore {
     }
 
     match /usuarios/{uid} {
-      allow read: if autenticado() && (request.auth.uid == uid || esAdmin());
+      allow read: if autenticado() && (request.auth.uid == uid || esAdmin() || esDespachador());
       allow create: if autenticado() && request.auth.uid == uid;
       allow update: if autenticado() && (request.auth.uid == uid || esAdmin());
       allow delete: if esAdmin();
@@ -68,17 +68,35 @@ service cloud.firestore {
           request.resource.data.estado == 'entregado'
         ) ||
         (
-          esDespachador() &&
-          soloCambioEstadoPedido() &&
-          request.resource.data.estado in ['en_preparacion', 'listo', 'en_camino']
+          esDespachador() && (
+            soloCambioEstadoPedido() ||
+            request.resource.data.diff(resource.data).changedKeys().hasAny(['estado', 'domiciliarioId', 'asignadoEn', 'preparadoEn', 'observacionesDespacho'])
+          )
         ) ||
         esAdmin()
       );
       allow delete: if esAdmin();
     }
 
+    match /recetas/{recetaId} {
+      allow create: if esAfiliado() && request.resource.data.usuarioId == request.auth.uid;
+      allow read: if autenticado() && (
+        resource.data.usuarioId == request.auth.uid ||
+        esDespachador() ||
+        esAdmin()
+      );
+      allow update: if autenticado() && (
+        (esAfiliado() && resource.data.usuarioId == request.auth.uid && resource.data.estado == 'pendiente') ||
+        esDespachador() ||
+        esAdmin()
+      );
+      allow delete: if esAdmin();
+    }
+
     match /inventario/{itemId} {
-      allow read: if autenticado() && (esDespachador() || esAdmin());
+      // Afiliados autenticados pueden leer catálogo de medicamentos activos
+      allow read: if autenticado();
+      // Despachadores y Administradores pueden crear, modificar y ajustar inventario
       allow write: if autenticado() && (esDespachador() || esAdmin());
     }
 

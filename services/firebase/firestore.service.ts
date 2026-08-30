@@ -34,14 +34,19 @@ export const firestoreService = {
       const q = query(
         collection(db, 'pedidos'),
         where('usuarioId', '==', uid),
-        where('estado', 'in', ['pendiente', 'en_preparacion', 'listo', 'en_camino'])
+        where('estado', 'in', ['pendiente', 'asignado', 'en_preparacion', 'listo', 'en_camino'])
       );
 
       return onSnapshot(
         q,
         (snapshot) => {
-          const pedido = snapshot.docs[0]?.data() as Pedido | undefined;
-          callback(pedido ?? null);
+          const docItem = snapshot.docs[0];
+          if (!docItem) {
+            callback(null);
+            return;
+          }
+          const pedido = { id: docItem.id, ...(docItem.data() as Omit<Pedido, 'id'>) } as Pedido;
+          callback(pedido);
         },
         (error) => {
           console.error('[Firestore Error] escucharPedidoActivo:', error);
@@ -55,7 +60,7 @@ export const firestoreService = {
 
   async crearPedido(data: Omit<Pedido, 'id' | 'timestampCreacion'>): Promise<string> {
     try {
-      if (!data.medicamentos.length) {
+      if (!data.medicamentos || !data.medicamentos.length) {
         throw new Error('Debes incluir al menos un medicamento.');
       }
 

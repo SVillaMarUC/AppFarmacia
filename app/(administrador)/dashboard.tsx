@@ -6,14 +6,18 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { StockIndicator } from '@/components/shared/StockIndicator';
 import { useTheme } from '@/context/ThemeContext';
 import { db } from '@/services/firebase/config';
-import type { Pedido } from '@/types';
+import { medicationService } from '@/services/medication.service';
+import type { ItemInventario, Pedido, RecetaMedica } from '@/types';
 
 type EstadoCard = {
   pendientes: number;
   enCamino: number;
   entregadosHoy: number;
+  recetasPendientes: number;
+  stockBajo: number;
 };
 
 export default function DashboardAdminScreen() {
@@ -21,11 +25,13 @@ export default function DashboardAdminScreen() {
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [recetas, setRecetas] = useState<RecetaMedica[]>([]);
+  const [inventario, setInventario] = useState<ItemInventario[]>([]);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(null);
 
   useEffect(() => {
     const pedidosRef = query(collection(db, 'pedidos'), orderBy('timestampCreacion', 'desc'));
-    const unsub = onSnapshot(
+    const unsubPedidos = onSnapshot(
       pedidosRef,
       (snapshot) => {
         const data = snapshot.docs.map((docItem) => ({ id: docItem.id, ...(docItem.data() as Omit<Pedido, 'id'>) }));
@@ -34,16 +40,32 @@ export default function DashboardAdminScreen() {
       },
       () => {
         setLoading(false);
-        Alert.alert('Error', 'No fue posible cargar el dashboard.');
+        Alert.alert('Error', 'No fue posible cargar pedidos.');
       }
     );
 
-    return unsub;
+    const unsubRecetas = onSnapshot(
+      collection(db, 'recetas'),
+      (snapshot) => {
+        setRecetas(snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<RecetaMedica, 'id'>) } as RecetaMedica)));
+      },
+      (err) => console.warn('Error recetas:', err)
+    );
+
+    const unsubInventario = medicationService.escucharInventario((items) => {
+      setInventario(items);
+    });
+
+    return () => {
+      unsubPedidos();
+      unsubRecetas();
+      unsubInventario();
+    };
   }, []);
 
   const metricas = useMemo<EstadoCard>(() => {
     const hoy = new Date();
-    return pedidos.reduce(
+    const base = pedidos.reduce(
       (acc, pedido) => {
         if (pedido.estado === 'pendiente') {
           acc.pendientes += 1;
@@ -63,15 +85,21 @@ export default function DashboardAdminScreen() {
         }
         return acc;
       },
-      { pendientes: 0, enCamino: 0, entregadosHoy: 0 }
+      { pendientes: 0, enCamino: 0, entregadosHoy: 0, recetasPendientes: 0, stockBajo: 0 }
     );
-  }, [pedidos]);
 
-  const pedidosRecientes = useMemo(() => pedidos.slice(0, 10), [pedidos]);
+    base.recetasPendientes = recetas.filter((r) => r.estado === 'pendiente').length;
+    base.stockBajo = inventario.filter((i) => i.stock <= i.stockMinimo).length;
+
+    return base;
+  }, [pedidos, recetas, inventario]);
+
+  const pedidosRecientes = useMemo(() => pedidos.slice(0, 8), [pedidos]);
 
   const estadoColor = (estado: string) => {
     if (estado === 'pendiente') return styles.chipPendiente;
     if (estado === 'en_camino') return styles.chipCamino;
+    if (estado === 'listo') return styles.chipListo;
     if (estado === 'entregado') return styles.chipEntregado;
     return styles.chipCancelado;
   };
@@ -92,62 +120,41 @@ export default function DashboardAdminScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <ScreenHeader
           kicker="Gestión y Control"
-          title="Panel administrador"
-          subtitle="Monitorea el flujo operativo de solicitudes, preparación y entregas."
+          title="Panel Administrador"
+          subtitle="Monitorea pedidos, fórmulas médicas, alertas de stock y operaciones de farmacia."
         />
 
         <View style={styles.metricasRow}>
-          {loading ? (
-            <>
-              <View style={styles.metricItem}>
-                <View style={[styles.skeletonCard, styles.metricCard, { backgroundColor: theme.colors.surfaceSecondary }]} />
+          <View style={styles.metricItem}>
+            <Card>
+              <View style={[styles.metricCard, styles.metricPendiente]}>
+                <Text style={[styles.metricValue, { color: theme.colors.text }]}>{metricas.pendientes}</Text>
+                <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]}>Pedidos Pend.</Text>
               </View>
-              <View style={styles.metricItem}>
-                <View style={[styles.skeletonCard, styles.metricCard, { backgroundColor: theme.colors.surfaceSecondary }]} />
+            </Card>
+          </View>
+          <View style={styles.metricItem}>
+            <Card>
+              <View style={[styles.metricCard, styles.metricRecetas]}>
+                <Text style={[styles.metricValue, { color: theme.colors.text }]}>{metricas.recetasPendientes}</Text>
+                <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]}>Recetas Pend.</Text>
               </View>
-              <View style={styles.metricItem}>
-                <View style={[styles.skeletonCard, styles.metricCard, { backgroundColor: theme.colors.surfaceSecondary }]} />
+            </Card>
+          </View>
+          <View style={styles.metricItem}>
+            <Card>
+              <View style={[styles.metricCard, styles.metricStock]}>
+                <Text style={[styles.metricValue, { color: theme.colors.text }]}>{metricas.stockBajo}</Text>
+                <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]}>Stock Bajo</Text>
               </View>
-            </>
-          ) : (
-            <>
-              <View style={styles.metricItem}>
-                <Card>
-                  <View style={[styles.metricCard, styles.metricPendiente]}>
-                    <Text style={[styles.metricValue, { color: theme.colors.text }]}>{metricas.pendientes}</Text>
-                    <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                      Pend.
-                    </Text>
-                  </View>
-                </Card>
-              </View>
-              <View style={styles.metricItem}>
-                <Card>
-                  <View style={[styles.metricCard, styles.metricCamino]}>
-                    <Text style={[styles.metricValue, { color: theme.colors.text }]}>{metricas.enCamino}</Text>
-                    <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                      Camino
-                    </Text>
-                  </View>
-                </Card>
-              </View>
-              <View style={styles.metricItem}>
-                <Card>
-                  <View style={[styles.metricCard, styles.metricEntregado]}>
-                    <Text style={[styles.metricValue, { color: theme.colors.text }]}>{metricas.entregadosHoy}</Text>
-                    <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                      Hoy
-                    </Text>
-                  </View>
-                </Card>
-              </View>
-            </>
-          )}
+            </Card>
+          </View>
         </View>
 
+        {/* Pedidos recientes */}
         <Card>
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Pedidos recientes</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Pedidos Recientes</Text>
             {pedidosRecientes.length ? (
               pedidosRecientes.map((pedido) => (
                 <Pressable
@@ -161,12 +168,25 @@ export default function DashboardAdminScreen() {
                   ]}
                   onPress={() => setPedidoSeleccionado(pedido)}
                 >
-                  <Text style={[styles.chipEstado, estadoColor(pedido.estado)]}>{pedido.estado.replace('_', ' ')}</Text>
-                  <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>Afiliado: {pedido.usuarioId}</Text>
+                  <View style={styles.pedidoHeaderRow}>
+                    <Text style={[styles.chipEstado, estadoColor(pedido.estado)]}>
+                      {pedido.estado.replace('_', ' ')}
+                    </Text>
+                    {pedido.recetaEstado ? (
+                      <Text style={[styles.recetaTag, { color: theme.colors.primary }]}>
+                        Receta: {pedido.recetaEstado}
+                      </Text>
+                    ) : null}
+                  </View>
                   <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
-                    Medicamentos: {pedido.medicamentos.map((m) => m.nombre).join(', ') || 'Sin medicamentos'}
+                    Afiliado ID: {pedido.usuarioId}
                   </Text>
-                  <Text style={[styles.rowTime, { color: theme.colors.text }]}>Hace {tiempoTranscurrido(pedido)}</Text>
+                  <Text style={[styles.rowText, { color: theme.colors.text }]}>
+                    Medicamentos: {pedido.medicamentos.map((m) => `${m.nombre} (${m.cantidad})`).join(', ') || 'Sin medicamentos'}
+                  </Text>
+                  <Text style={[styles.rowTime, { color: theme.colors.textSecondary }]}>
+                    Hace {tiempoTranscurrido(pedido)}
+                  </Text>
                 </Pressable>
               ))
             ) : (
@@ -175,27 +195,17 @@ export default function DashboardAdminScreen() {
           </View>
         </Card>
 
-        <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-
+        {/* Acciones Rápidas */}
         <Card>
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Acciones rápidas</Text>
-            <Text style={[styles.desc, { color: theme.colors.textSecondary }]}>
-              Consulta indicadores y tendencias operativas.
-            </Text>
-            <Button texto="Ver reportes" onPress={() => router.push('/(administrador)/reportes')} />
-            <Text style={[styles.desc, { color: theme.colors.textSecondary }]}>
-              Revisa solicitudes de soporte y seguimiento.
-            </Text>
-            <Button texto="PQRS" onPress={() => router.push('/(administrador)/pqrs')} variant="secundario" />
-            <Text style={[styles.desc, { color: theme.colors.textSecondary }]}>
-              Administración de perfiles y permisos.
-            </Text>
-            <Button texto="Gestionar usuarios" onPress={() => Alert.alert('Próximamente')} variant="secundario" />
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Acciones del Sistema</Text>
+            <Button texto="Ver Reportes Operativos" onPress={() => router.push('/(administrador)/reportes')} />
+            <Button texto="Gestión de PQRS" onPress={() => router.push('/(administrador)/pqrs')} variant="secundario" />
           </View>
         </Card>
       </ScrollView>
 
+      {/* Modal Detalle Pedido */}
       <Modal visible={Boolean(pedidoSeleccionado)} transparent animationType="fade" onRequestClose={() => setPedidoSeleccionado(null)}>
         <View style={styles.modalBackdrop}>
           <View
@@ -207,12 +217,12 @@ export default function DashboardAdminScreen() {
               },
             ]}
           >
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Detalle del pedido</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Detalle del Pedido</Text>
             <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
-              Estado: {pedidoSeleccionado?.estado.replace('_', ' ')}
+              ID: {pedidoSeleccionado?.id}
             </Text>
             <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
-              Afiliado: {pedidoSeleccionado?.usuarioId}
+              Estado: {pedidoSeleccionado?.estado.replace('_', ' ')}
             </Text>
             <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
               Modo de entrega: {pedidoSeleccionado?.modoEntrega}
@@ -221,7 +231,10 @@ export default function DashboardAdminScreen() {
               Dirección: {pedidoSeleccionado?.direccionEntrega?.direccion ?? 'No aplica'}
             </Text>
             <Text style={[styles.rowText, { color: theme.colors.textSecondary }]}>
-              Medicamentos: {pedidoSeleccionado?.medicamentos.map((m) => `${m.nombre} (${m.cantidad})`).join(', ')}
+              Receta médica: {pedidoSeleccionado?.recetaId ? 'Adjunta' : 'No requerida'}
+            </Text>
+            <Text style={[styles.rowText, { color: theme.colors.text }]}>
+              Medicamentos: {pedidoSeleccionado?.medicamentos.map((m) => `${m.nombre} x${m.cantidad}`).join(', ')}
             </Text>
             <Button texto="Cerrar" onPress={() => setPedidoSeleccionado(null)} />
           </View>
@@ -238,41 +251,47 @@ const styles = StyleSheet.create({
   metricItem: { flex: 1 },
   metricCard: {
     flex: 1,
-    minHeight: 92,
+    minHeight: 88,
     justifyContent: 'space-between',
   },
-  metricValue: { fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  metricValue: { fontSize: 26, fontWeight: '800', textAlign: 'center' },
   metricLabel: {
     fontWeight: '600',
-    fontSize: 14,
-    lineHeight: 18,
-    minHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     textAlign: 'center',
   },
   metricPendiente: { borderTopWidth: 4, borderTopColor: '#d97706', paddingTop: 8 },
-  metricCamino: { borderTopWidth: 4, borderTopColor: '#0f766e', paddingTop: 8 },
-  metricEntregado: { borderTopWidth: 4, borderTopColor: '#16a34a', paddingTop: 8 },
-  skeletonCard: { borderRadius: 14 },
+  metricRecetas: { borderTopWidth: 4, borderTopColor: '#2563eb', paddingTop: 8 },
+  metricStock: { borderTopWidth: 4, borderTopColor: '#dc2626', paddingTop: 8 },
   section: { gap: 10 },
   sectionTitle: { fontWeight: '700', fontSize: 16 },
   rowPedido: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 4 },
+  pedidoHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   chipEstado: {
     alignSelf: 'flex-start',
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 3,
     color: '#ffffff',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 11,
   },
   chipPendiente: { backgroundColor: '#d97706' },
   chipCamino: { backgroundColor: '#0f766e' },
+  chipListo: { backgroundColor: '#2563eb' },
   chipEntregado: { backgroundColor: '#16a34a' },
   chipCancelado: { backgroundColor: '#b91c1c' },
-  rowText: { fontSize: 14, lineHeight: 20 },
-  rowTime: { fontWeight: '600', fontSize: 14 },
-  divider: { height: 1, marginVertical: 4 },
-  desc: { marginTop: 2, fontSize: 14, lineHeight: 20 },
+  recetaTag: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  rowText: { fontSize: 13, lineHeight: 18 },
+  rowTime: { fontSize: 12 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -282,8 +301,7 @@ const styles = StyleSheet.create({
   modalCard: {
     borderRadius: 14,
     borderWidth: 1,
-    padding: 14,
-    gap: 8,
+    padding: 16,
+    gap: 10,
   },
 });
-
