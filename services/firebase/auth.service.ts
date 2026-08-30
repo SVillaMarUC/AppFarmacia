@@ -130,9 +130,16 @@ const mapLoginError = (error: unknown): string => {
 export const authService = {
   async iniciarSesionConCedula(cedulaOrEmail: string, contrasena: string): Promise<User> {
     try {
-      const email = await resolveEmailByCedula(cedulaOrEmail);
+      let email: string | null = null;
+      const input = cedulaOrEmail.trim().toLowerCase();
+      if (input.includes('@')) {
+        email = input;
+      } else {
+        email = await resolveEmailByCedula(cedulaOrEmail);
+      }
+
       if (!email) {
-        throw new Error('No existe una cuenta asociada a esa cédula.');
+        throw new Error('No existe una cuenta asociada a esa cédula o correo.');
       }
 
       const credential = await signInWithEmailAndPassword(auth, email, contrasena);
