@@ -4,7 +4,7 @@ Aplicación móvil multiplataforma desarrollada en **React Native / Expo SDK 54*
 
 ---
 
-## 🚀 Requisitos Previos
+## Requisitos Previos
 
 - **Node.js**: 20.x o superior
 - **npm**: 10.x o superior
@@ -16,7 +16,7 @@ Aplicación móvil multiplataforma desarrollada en **React Native / Expo SDK 54*
 
 ---
 
-## ⚙️ Configuración Inicial del Proyecto (Paso a Paso)
+## Configuración Inicial del Proyecto (Paso a Paso)
 
 ### 1. Clonar e Instalar Dependencias
 ```bash
@@ -66,7 +66,7 @@ Copia las reglas de `firestore.rules` en la consola de Firebase en **Firestore D
 
 ---
 
-## 📱 Cómo Poner en Marcha y Probar la Aplicación
+## Cómo Poner en Marcha y Probar la Aplicación
 
 ### Paso 1: Iniciar el Servidor de Desarrollo
 ```bash
@@ -94,7 +94,7 @@ Para cambiar el rol de un usuario registrado y acceder a los otros módulos:
 
 ---
 
-## 🎨 Accesibilidad y Sistema de Temas (Claro / Oscuro)
+## Accesibilidad y Sistema de Temas (Claro / Oscuro)
 
 La aplicación cuenta con soporte completo de accesibilidad visual y temas:
 - **Modo Claro (`light`)**: Tonos teal suaves `#f1f5f9` y texto de alto contraste `#0f172a`.
@@ -104,7 +104,7 @@ La aplicación cuenta con soporte completo de accesibilidad visual y temas:
 
 ---
 
-## 📦 Comandos del Proyecto
+## Comandos del Proyecto
 
 | Comando | Descripción |
 | :--- | :--- |
@@ -116,7 +116,7 @@ La aplicación cuenta con soporte completo de accesibilidad visual y temas:
 
 ---
 
-## 🔒 Estructura y Seguridad de Datos
+## Estructura y Seguridad de Datos
 
 - **Cero Base64 en Firestore:** Las imágenes de recetas médicas se procesan, se comprimen y se almacenan en Supabase Storage. Firestore almacena únicamente los metadatos y la ruta segura.
 - **Control Atómico de Inventario:** Las deducciones de stock se ejecutan mediante transacciones atómicas (`runTransaction`), garantizando que nunca se produzca stock negativo ni inconsistencias por solicitudes simultáneas.
