@@ -4,7 +4,7 @@ const config: ExpoConfig = {
   name: 'FarmaYa',
   slug: 'farma-ya',
   owner: 'farma-team',
-  version: '0.3.0',
+  version: '0.6.0',
   scheme: 'farmaya',
   icon: './assets/icon.png',
   orientation: 'portrait',
@@ -16,11 +16,11 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     icon: './assets/icon.png',
-    buildNumber: '3',
+    buildNumber: '6',
   },
   android: {
     package: 'com.farmaya.app',
-    versionCode: 3,
+    versionCode: 6,
     permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'POST_NOTIFICATIONS'],
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
@@ -28,6 +28,7 @@ const config: ExpoConfig = {
     },
   },
   web: {
+    bundler: 'metro',
     favicon: './assets/favicon.png',
   },
   updates: {

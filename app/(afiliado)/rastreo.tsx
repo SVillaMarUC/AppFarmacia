@@ -5,6 +5,7 @@ import { collection, getDocs, limit, orderBy, query, where } from 'firebase/fire
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
+import { PlatformMap } from '@/components/shared/PlatformMap';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/services/firebase/config';
@@ -22,19 +23,22 @@ export default function RastreoScreen() {
   const { theme } = useTheme();
   const [loadingUbicacion, setLoadingUbicacion] = useState(true);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [ubicacionError, setUbicacionError] = useState('');
   const [ubicacion, setUbicacion] = useState<EstadoRastreo | null>(null);
   const [pedidoActivo, setPedidoActivo] = useState<Pedido | null>(null);
   const [pedidoError, setPedidoError] = useState('');
-  const [fatalError, setFatalError] = useState('');
+  const [loadingPedido, setLoadingPedido] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
 
   const cargarPedidoActivo = useCallback(async () => {
     if (!perfil?.uid) {
       setPedidoActivo(null);
+      setLoadingPedido(false);
       return;
     }
 
     try {
+      setLoadingPedido(true);
       setPedidoError('');
       const pedidosRef = collection(db, 'pedidos');
       const consulta = query(
@@ -53,15 +57,18 @@ export default function RastreoScreen() {
       }
 
       setPedidoActivo({ id: documento.id, ...(documento.data() as Omit<Pedido, 'id'>) });
-    } catch (error) {
+    } catch {
       setPedidoError('No fue posible cargar el estado del pedido. Intenta nuevamente.');
       setPedidoActivo(null);
+    } finally {
+      setLoadingPedido(false);
     }
   }, [perfil?.uid]);
 
   const cargarUbicacion = useCallback(async () => {
     try {
       setLoadingUbicacion(true);
+      setUbicacionError('');
       const permiso = await Location.requestForegroundPermissionsAsync();
       if (permiso.status !== 'granted') {
         setPermissionDenied(true);
@@ -77,24 +84,16 @@ export default function RastreoScreen() {
         precision: posicion.coords.accuracy ?? 0,
         actualizadoEn: posicion.timestamp,
       });
-    } catch (error) {
-      setFatalError('Ocurrió un error cargando el rastreo.');
+    } catch {
+      setUbicacionError('No se pudo obtener la geolocalización actual.');
     } finally {
       setLoadingUbicacion(false);
     }
   }, []);
 
   useEffect(() => {
-    const cargarTodo = async () => {
-      try {
-        setFatalError('');
-        await Promise.all([cargarUbicacion(), cargarPedidoActivo()]);
-      } catch (error) {
-        setFatalError('Ocurrió un error cargando el rastreo.');
-      }
-    };
-
-    void cargarTodo();
+    void cargarUbicacion();
+    void cargarPedidoActivo();
   }, [cargarPedidoActivo, cargarUbicacion, reloadKey]);
 
   const renderChipEstado = (estado?: string) => {
@@ -117,23 +116,12 @@ export default function RastreoScreen() {
     );
   };
 
-  if (fatalError) {
-    return (
-      <Screen>
-        <View style={styles.center}>
-          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>{fatalError}</Text>
-          <Button texto="Reintentar" onPress={() => setReloadKey((prev) => prev + 1)} />
-        </View>
-      </Screen>
-    );
-  }
-
   return (
     <Screen>
       <View style={styles.container}>
         <Card>
           <View style={styles.cardBlock}>
-            <Text style={[styles.tituloSeccion, { color: theme.colors.text }]}>Tu ubicación actual</Text>
+            <Text style={[styles.tituloSeccion, { color: theme.colors.text }]}>Tu ubicación y ruta</Text>
             {loadingUbicacion ? (
               <View style={styles.loaderWrap}>
                 <ActivityIndicator color={theme.colors.primary} size="large" />
@@ -143,25 +131,33 @@ export default function RastreoScreen() {
             {!loadingUbicacion && permissionDenied ? (
               <View style={styles.block}>
                 <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
-                  Para rastrear tu pedido necesitamos acceso a tu ubicación.
+                  Para rastrear tu pedido en tiempo real se requiere acceso a tu ubicación.
                 </Text>
                 <Button texto="Abrir configuración" onPress={() => Linking.openSettings()} />
               </View>
             ) : null}
 
+            {!loadingUbicacion && !permissionDenied && ubicacionError ? (
+              <View style={styles.block}>
+                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>{ubicacionError}</Text>
+                <Button texto="Reintentar ubicación" onPress={() => void cargarUbicacion()} />
+              </View>
+            ) : null}
+
             {!loadingUbicacion && !permissionDenied && ubicacion ? (
               <View style={styles.block}>
+                <PlatformMap
+                  latitude={ubicacion.latitud}
+                  longitude={ubicacion.longitud}
+                  title="Tu ubicación actual"
+                  description="Posición del dispositivo"
+                  height={180}
+                />
                 <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
-                  Latitud: {ubicacion.latitud.toFixed(6)}
+                  Latitud: {ubicacion.latitud.toFixed(6)} | Longitud: {ubicacion.longitud.toFixed(6)}
                 </Text>
                 <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
-                  Longitud: {ubicacion.longitud.toFixed(6)}
-                </Text>
-                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
-                  Precisión: {Math.round(ubicacion.precision)} m
-                </Text>
-                <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
-                  Última actualización:{' '}
+                  Precisión: {Math.round(ubicacion.precision)} m | Actualizado:{' '}
                   {new Date(ubicacion.actualizadoEn).toLocaleTimeString('es-CO', { hour12: false })}
                 </Text>
                 <Button texto="Actualizar ubicación" onPress={() => void cargarUbicacion()} />
@@ -173,11 +169,20 @@ export default function RastreoScreen() {
         <Card>
           <View style={styles.cardBlock}>
             <Text style={[styles.tituloSeccion, { color: theme.colors.text }]}>Estado del pedido</Text>
-            {pedidoError ? (
-              <Text style={[styles.error, { color: theme.colors.error }]}>{pedidoError}</Text>
+            {loadingPedido ? (
+              <View style={styles.loaderWrap}>
+                <ActivityIndicator color={theme.colors.primary} size="small" />
+              </View>
             ) : null}
 
-            {pedidoActivo ? (
+            {pedidoError ? (
+              <View style={styles.block}>
+                <Text style={[styles.error, { color: theme.colors.error }]}>{pedidoError}</Text>
+                <Button texto="Reintentar pedido" onPress={() => setReloadKey((prev) => prev + 1)} />
+              </View>
+            ) : null}
+
+            {!loadingPedido && !pedidoError && pedidoActivo ? (
               <View style={styles.block}>
                 {renderChipEstado(pedidoActivo.estado)}
                 <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
@@ -193,11 +198,13 @@ export default function RastreoScreen() {
                   Dirección de entrega: {pedidoActivo.direccionEntrega?.direccion ?? 'No aplica'}
                 </Text>
               </View>
-            ) : (
+            ) : null}
+
+            {!loadingPedido && !pedidoError && !pedidoActivo ? (
               <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
                 No tienes pedidos activos en este momento.
               </Text>
-            )}
+            ) : null}
           </View>
         </Card>
       </View>
@@ -224,7 +231,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   block: {
-    gap: 4,
+    gap: 6,
   },
   chipEstado: {
     alignSelf: 'flex-start',
@@ -242,12 +249,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    gap: 10,
-  },
 });
-

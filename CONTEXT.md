@@ -12,7 +12,7 @@
 ---
 
 ## 2. Stack Tecnológico
-- **Lenguaje / Framework:** TypeScript (estricto), React Native, Expo SDK 54, Expo Router (enrutamiento basado en archivos).
+- **Lenguaje / Framework:** TypeScript (estricto), React Native, Expo SDK 57, Expo Router (enrutamiento basado en archivos).
 - **Autenticación & Base de Datos:**
   - **Firebase Auth:** Autenticación de usuarios con persistencia nativa en `AsyncStorage` / `SecureStore`.
   - **Cloud Firestore:** Base de datos documental NoSQL para usuarios, pedidos, catálogo/inventario, metadatos de recetas y tracking geográfico.

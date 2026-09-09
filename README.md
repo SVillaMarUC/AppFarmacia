@@ -1,14 +1,16 @@
 # Farma Ya (AppFarmacia)
 
-Aplicación móvil multiplataforma desarrollada en **React Native / Expo SDK 54** para la gestión y automatización integral del despacho y entrega de medicamentos de una farmacia, conectando a **Afiliados**, **Despachadores**, **Domiciliarios** y **Administradores** en tiempo real.
+Aplicación móvil multiplataforma desarrollada en **React Native / Expo SDK 57** para la gestión y automatización integral del despacho y entrega de medicamentos de una farmacia, conectando a **Afiliados**, **Despachadores**, **Domiciliarios** y **Administradores** en tiempo real.
+
+> 📖 **Para nuevos colaboradores**: Consulta la [Guía Completa de Configuración y Solución de Problemas (SETUP.md)](SETUP.md) para resolver temas de Expo Go, redes Wi-Fi, firewall o ejecutar la versión Web.
 
 ---
 
 ## Requisitos Previos
 
-- **Node.js**: 20.x o superior
+- **Node.js**: 22.x LTS (compatible con 20.x y 24.x)
 - **npm**: 10.x o superior
-- **Expo SDK**: 54
+- **Expo SDK**: 57
 - **Dispositivo de prueba**: Emulador Android/iOS o app **Expo Go** en tu smartphone.
 - **Cuentas de Servicio**:
   - Proyecto de **Firebase** (Auth + Cloud Firestore).
@@ -108,8 +110,13 @@ La aplicación cuenta con soporte completo de accesibilidad visual y temas:
 
 | Comando | Descripción |
 | :--- | :--- |
-| `npm run start` | Inicia el servidor de desarrollo de Expo. |
+| `npm run start` | Inicia el servidor de desarrollo Expo / Metro. |
+| `npm run start:lan` | Inicia en red local (misma red Wi-Fi). |
+| `npm run start:tunnel` | Inicia con túnel remoto (ideal para universidades/oficinas o problemas de red). |
+| `npm run web` | Inicia la versión Web en el navegador (fallback de visualización). |
+| `npm run start:clear` | Inicia limpiando caché de Metro Bundler. |
 | `npm run typecheck` | Ejecuta el validador estático de TypeScript (`tsc --noEmit`). |
+| `npm run doctor` | Diagnóstico oficial de dependencias de Expo (`npx expo-doctor`). |
 | `npm run android` | Ejecuta la app directamente en dispositivo/emulador Android. |
 | `npm run ios` | Ejecuta la app directamente en simulador de iOS. |
 | `npm run eas:build:preview:android` | Genera un archivo `.apk` de prueba en la nube vía EAS. |
