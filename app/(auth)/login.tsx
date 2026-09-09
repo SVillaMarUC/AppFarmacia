@@ -136,26 +136,26 @@ export default function LoginScreen() {
                 <View style={styles.actionsRow}>
                   <Link href="/(auth)/register" asChild style={styles.linkFlex}>
                     <TouchableOpacity
-                      style={[
+                      style={StyleSheet.flatten([
                         styles.registerButton,
                         {
                           borderColor: theme.colors.primary,
                           backgroundColor: theme.colors.primaryLight,
                         },
-                      ]}
+                      ])}
                     >
                       <Text style={[styles.registerLink, { color: theme.colors.primary }]}>Crear cuenta</Text>
                     </TouchableOpacity>
                   </Link>
                   <Link href="/(auth)/forgot-password" asChild style={styles.linkFlex}>
                     <TouchableOpacity
-                      style={[
+                      style={StyleSheet.flatten([
                         styles.resetButton,
                         {
                           borderColor: theme.colors.info,
                           backgroundColor: theme.colors.infoBg,
                         },
-                      ]}
+                      ])}
                     >
                       <Text style={[styles.resetLink, { color: theme.colors.infoText }]}>
                         Restablecer contraseña

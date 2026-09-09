@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   Keyboard,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -96,27 +97,29 @@ export default function NuevaSolicitudScreen() {
   // Selección y captura de imagen de receta
   const seleccionarImagen = async (desdeCamara: boolean) => {
     try {
-      if (desdeCamara) {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== ImagePicker.PermissionStatus.GRANTED) {
-          Alert.alert(
-            'Permiso de Cámara requerido',
-            'Debes conceder permisos de acceso a la cámara para fotografiar tu receta médica.'
-          );
-          return;
-        }
-      } else {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== ImagePicker.PermissionStatus.GRANTED) {
-          Alert.alert(
-            'Permiso de Galería requerido',
-            'Debes conceder permisos de acceso a la galería para seleccionar tu receta médica.'
-          );
-          return;
+      if (Platform.OS !== 'web') {
+        if (desdeCamara) {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== ImagePicker.PermissionStatus.GRANTED) {
+            Alert.alert(
+              'Permiso de Cámara requerido',
+              'Debes conceder permisos de acceso a la cámara para fotografiar tu receta médica.'
+            );
+            return;
+          }
+        } else {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== ImagePicker.PermissionStatus.GRANTED) {
+            Alert.alert(
+              'Permiso de Galería requerido',
+              'Debes conceder permisos de acceso a la galería para seleccionar tu receta médica.'
+            );
+            return;
+          }
         }
       }
 
-      const result = desdeCamara
+      const result = desdeCamara && Platform.OS !== 'web'
         ? await ImagePicker.launchCameraAsync({
             mediaTypes: ['images'],
             allowsEditing: true,

@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import { safeStorage } from '@/services/storage/safeStorage';
 import {
   User,
   createUserWithEmailAndPassword,
@@ -144,7 +144,7 @@ export const authService = {
 
       const credential = await signInWithEmailAndPassword(auth, email, contrasena);
       const token = await credential.user.getIdToken();
-      await SecureStore.setItemAsync(TOKEN_KEY, token);
+      await safeStorage.setItem(TOKEN_KEY, token);
       return credential.user;
     } catch (error) {
       if (error instanceof Error) {
@@ -219,7 +219,7 @@ export const authService = {
   async cerrarSesion(): Promise<void> {
     try {
       await signOut(auth);
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await safeStorage.deleteItem(TOKEN_KEY);
     } catch (error) {
       throw new Error('No fue posible cerrar sesión.');
     }
@@ -236,7 +236,7 @@ export const authService = {
       }
 
       const token = await auth.currentUser.getIdToken(true);
-      await SecureStore.setItemAsync(TOKEN_KEY, token);
+      await safeStorage.setItem(TOKEN_KEY, token);
       return token;
     } catch (error) {
       throw new Error('No fue posible refrescar el token.');

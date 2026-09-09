@@ -1,7 +1,6 @@
 import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Appearance, ColorSchemeName, useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+import { safeStorage } from '@/services/storage/safeStorage';
 import { darkTheme, lightTheme, type AppTheme, type EffectiveTheme, type ThemeMode } from '@/constants/theme';
 
 type ThemeContextValue = {
@@ -19,33 +18,20 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const saveStoredMode = async (mode: ThemeMode) => {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, mode);
+    await safeStorage.setItem(STORAGE_KEY, mode);
   } catch {
-    try {
-      await SecureStore.setItemAsync(STORAGE_KEY, mode);
-    } catch {
-      // Ignorar error de persistencia
-    }
+    // Ignorar error de persistencia
   }
 };
 
 const getStoredMode = async (): Promise<ThemeMode | null> => {
   try {
-    const saved = await AsyncStorage.getItem(STORAGE_KEY);
+    const saved = await safeStorage.getItem(STORAGE_KEY);
     if (saved === 'light' || saved === 'dark' || saved === 'system') {
       return saved;
     }
   } catch {
-    // Intentar fallback a SecureStore
-  }
-
-  try {
-    const saved = await SecureStore.getItemAsync(STORAGE_KEY);
-    if (saved === 'light' || saved === 'dark' || saved === 'system') {
-      return saved;
-    }
-  } catch {
-    // Si ambos fallan
+    // Ignorar error
   }
 
   return null;
