@@ -134,9 +134,10 @@ export default function LoginScreen() {
 
               <View style={styles.links}>
                 <View style={styles.actionsRow}>
-                  <Link href="/(auth)/register" asChild style={styles.linkFlex}>
+                  <Link href="/(auth)/register" asChild>
                     <TouchableOpacity
                       style={StyleSheet.flatten([
+                        styles.linkFlex,
                         styles.registerButton,
                         {
                           borderColor: theme.colors.primary,
@@ -147,9 +148,10 @@ export default function LoginScreen() {
                       <Text style={[styles.registerLink, { color: theme.colors.primary }]}>Crear cuenta</Text>
                     </TouchableOpacity>
                   </Link>
-                  <Link href="/(auth)/forgot-password" asChild style={styles.linkFlex}>
+                  <Link href="/(auth)/forgot-password" asChild>
                     <TouchableOpacity
                       style={StyleSheet.flatten([
+                        styles.linkFlex,
                         styles.resetButton,
                         {
                           borderColor: theme.colors.info,
