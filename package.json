@@ -41,7 +41,7 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-web": "~0.21.0",
-    "zod": "^3.25.76"
+    "zod": "^4.6.2"
   },
   "overrides": {
     "protobufjs": "^7.5.5"
