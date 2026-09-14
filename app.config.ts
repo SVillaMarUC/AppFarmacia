@@ -20,7 +20,6 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'com.farmaya.app',
-    versionCode: 6,
     permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'POST_NOTIFICATIONS'],
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
