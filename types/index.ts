@@ -150,3 +150,29 @@ export interface UbicacionDomiciliario {
   pedidoActivoId?: string | null;
   actualizadoEn: Timestamp;
 }
+
+export type TipoCheckpoint =
+  | 'pedido_recibido'
+  | 'pedido_recogido'
+  | 'en_camino'
+  | 'cerca_destino'
+  | 'pedido_entregado';
+
+export type EstadoCheckpoint =
+  | 'pendiente'
+  | 'en_proceso'
+  | 'completado'
+  | 'incidencia';
+
+export interface Checkpoint {
+  id: string;
+  tipo: TipoCheckpoint;
+  nombre: string;
+  estado: EstadoCheckpoint;
+  fechaHora?: Timestamp;
+  latitud?: number | null;
+  longitud?: number | null;
+  precisionGPS?: number | null;
+  observacion?: string;
+  domiciliarioId: string;
+}

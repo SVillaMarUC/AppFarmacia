@@ -1,140 +1,72 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function autenticado() {
-      return request.auth != null;
-    }
 
-    function esAdmin() {
-      return autenticado() &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'administrador';
-    }
-
-    function esDespachador() {
-      return autenticado() &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'despachador';
-    }
-
-    function esDomiciliario() {
-      return autenticado() &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'domiciliario';
-    }
-
-    function esAfiliado() {
-      return autenticado() &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'afiliado';
-    }
-
-    function pedidoActivoPerteneceAfiliado(pedidoId, domiciliarioUid) {
-      return get(/databases/$(database)/documents/pedidos/$(pedidoId)).data.usuarioId == request.auth.uid &&
-        get(/databases/$(database)/documents/pedidos/$(pedidoId)).data.domiciliarioId == domiciliarioUid &&
-        get(/databases/$(database)/documents/pedidos/$(pedidoId)).data.estado == 'en_camino';
-    }
-
-    function soloCambioEstadoPedido() {
-      return request.resource.data.diff(resource.data).changedKeys().hasOnly(['estado']);
-    }
-
+    // ================================
+    // USUARIOS
+    // ================================
     match /usuarios/{uid} {
-      allow read: if autenticado() && (request.auth.uid == uid || esAdmin() || esDespachador());
-      allow create: if autenticado() && request.auth.uid == uid;
-      allow update: if autenticado() && (request.auth.uid == uid || esAdmin());
-      allow delete: if esAdmin();
+      allow read, write: if request.auth != null
+        && request.auth.uid == uid;
     }
 
-    match /accesosCedula/{cedula} {
-      allow get: if true;
-      allow list: if false;
-      allow create: if autenticado() && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if autenticado() && (
-        resource.data.uid == request.auth.uid ||
-        esAdmin()
-      );
-    }
-
+    // ================================
+    // PEDIDOS
+    // ================================
     match /pedidos/{pedidoId} {
-      allow create: if esAfiliado() && request.resource.data.usuarioId == request.auth.uid;
-      allow read: if autenticado() && (
-        resource.data.usuarioId == request.auth.uid ||
-        (esDomiciliario() && resource.data.domiciliarioId == request.auth.uid) ||
-        esDespachador() ||
-        esAdmin()
-      );
-      allow update: if autenticado() && (
-        (
-          esDomiciliario() &&
-          resource.data.domiciliarioId == request.auth.uid &&
-          soloCambioEstadoPedido() &&
-          request.resource.data.estado == 'entregado'
-        ) ||
-        (
-          esDespachador() && (
-            soloCambioEstadoPedido() ||
-            request.resource.data.diff(resource.data).changedKeys().hasAny(['estado', 'domiciliarioId', 'asignadoEn', 'preparadoEn', 'observacionesDespacho'])
-          )
-        ) ||
-        esAdmin()
-      );
-      allow delete: if esAdmin();
+
+      // Usuario autenticado puede consultar pedidos
+      allow read: if request.auth != null;
+
+      // Crear pedidos
+      allow create: if request.auth != null;
+
+      // Actualizar pedidos
+      allow update: if request.auth != null;
+
+      // Eliminar pedidos
+      allow delete: if request.auth != null;
+
+      // ================================
+      // CHECKPOINTS DEL PEDIDO
+      // ================================
+      match /checkpoints/{checkpointId} {
+
+        // Consultar checkpoints
+        allow read: if request.auth != null;
+
+        // Registrar o actualizar checkpoint
+        allow create, update: if request.auth != null
+          && request.resource.data.domiciliarioId == request.auth.uid;
+
+        // No permitimos eliminar checkpoints
+        allow delete: if false;
+      }
     }
 
-    match /recetas/{recetaId} {
-      allow create: if esAfiliado() && request.resource.data.usuarioId == request.auth.uid;
-      allow read: if autenticado() && (
-        resource.data.usuarioId == request.auth.uid ||
-        esDespachador() ||
-        esAdmin()
-      );
-      allow update: if autenticado() && (
-        (esAfiliado() && resource.data.usuarioId == request.auth.uid && resource.data.estado == 'pendiente') ||
-        esDespachador() ||
-        esAdmin()
-      );
-      allow delete: if esAdmin();
-    }
-
-    match /inventario/{itemId} {
-      // Afiliados autenticados pueden leer catálogo de medicamentos activos
-      allow read: if autenticado();
-      // Despachadores y Administradores pueden crear, modificar y ajustar inventario
-      allow write: if autenticado() && (esDespachador() || esAdmin());
-    }
-
+    // ================================
+    // UBICACIONES DE DOMICILIARIOS
+    // ================================
     match /ubicacionesDomiciliarios/{uid} {
-      allow read: if autenticado() && (
-        request.auth.uid == uid ||
-        esAdmin() ||
-        esDespachador() ||
-        (
-          esAfiliado() &&
-          resource.data.pedidoActivoId is string &&
-          pedidoActivoPerteneceAfiliado(resource.data.pedidoActivoId, uid)
-        )
-      );
-      allow write: if autenticado() && (
-        request.auth.uid == uid ||
-        esAdmin() ||
-        esDespachador()
-      );
+
+      // Consultar ubicación
+      allow read: if request.auth != null;
+
+      // Un domiciliario solamente puede
+      // actualizar su propia ubicación
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid;
+
+      // No eliminar historial/ubicación
+      allow delete: if false;
     }
 
-    match /reportes/{reporteId} {
-      allow read: if autenticado() && esAdmin();
-      allow write: if autenticado() && esAdmin();
-    }
-
-    match /pqrs/{pqrsId} {
-      allow create: if autenticado() && request.resource.data.usuarioId == request.auth.uid;
-      allow read: if autenticado() && (
-        resource.data.usuarioId == request.auth.uid ||
-        esAdmin()
-      );
-      allow update: if autenticado() && esAdmin();
-      allow delete: if autenticado() && esAdmin();
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
+    // ================================
+    // INVENTARIO
+    // ================================
+    match /inventario/{itemId} {
+      allow read, write: if request.auth != null;
     }
   }
 }

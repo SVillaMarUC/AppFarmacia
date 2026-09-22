@@ -150,14 +150,16 @@ export default function NuevaSolicitudScreen() {
           setOcrMedicamentos(resOcr.medicamentosDetectados);
 
           if (resOcr.medicamentosDetectados.length > 0) {
-            // Incorporar medicamentos detectados
-            const nuevosMeds: Medicamento[] = resOcr.medicamentosDetectados.map((item) => ({
-              nombre: item.nombre,
-              concentracion: item.concentracion,
-              dosis: item.dosis,
-              cantidad: item.cantidad || 1,
-              requiereReceta: true,
-            }));
+            // Incorporar medicamentos detectados con tipado explícito
+            const nuevosMeds: Medicamento[] = resOcr.medicamentosDetectados.map(
+              (item: RecetaOCRItem) => ({
+                nombre: item.nombre,
+                concentracion: item.concentracion,
+                dosis: item.dosis,
+                cantidad: item.cantidad || 1,
+                requiereReceta: true,
+              })
+            );
             setMedicamentos(nuevosMeds);
           }
         } catch (ocrErr) {
@@ -279,7 +281,7 @@ export default function NuevaSolicitudScreen() {
       let recetaId: string | null = null;
       let recetaUrl: string | null = null;
 
-      // 1. Subir receta médica vía PrescriptionService (Object Storage Supabase)
+      // 1. Subir receta médica vía PrescriptionService
       if (imagenUri) {
         const recetaCreada = await prescriptionService.crearReceta(perfil.uid, imagenUri, {
           textoCrudo: ocrTexto,
@@ -289,7 +291,7 @@ export default function NuevaSolicitudScreen() {
         recetaUrl = recetaCreada.urlTemporal ?? recetaCreada.storagePath;
       }
 
-      // 2. Crear pedido con snapshots inmutables
+      // 2. Crear pedido
       const direccionEntrega: Direccion | undefined =
         modoEntrega === 'domicilio' ? perfil.direcciones?.[indiceDireccion] : undefined;
 
@@ -387,7 +389,6 @@ export default function NuevaSolicitudScreen() {
         {/* PASO 1: SELECCIÓN Y CARGA */}
         {paso === 1 ? (
           <View style={styles.pasoContainer}>
-            {/* Modalidad de Selección */}
             <View style={styles.toggleCardsWrap}>
               <TouchableOpacity
                 style={[
@@ -563,7 +564,7 @@ export default function NuevaSolicitudScreen() {
               </Card>
             ) : null}
 
-            {/* SECCIÓN ADJUNTAR RECETA (Si se selecciona o si es obligatoria) */}
+            {/* SECCIÓN ADJUNTAR RECETA */}
             {modoSeleccion === 'receta' || requiereRecetaObligatoria ? (
               <Card>
                 <View style={styles.seccionHeader}>
@@ -821,7 +822,7 @@ export default function NuevaSolicitudScreen() {
             ) : (
               <View style={styles.direccionBox}>
                 <Text style={[styles.texto, { color: theme.colors.textSecondary }]}>
-                  Sede de recogida asignada: {perfil?.ciudad ?? 'Sede Principal Farma Ya'}
+                  Sede de recogida asignada: {perfil?.ciudad || 'Sede Principal'}
                 </Text>
               </View>
             )}
@@ -831,13 +832,13 @@ export default function NuevaSolicitudScreen() {
                 <Button texto="Atrás" onPress={() => setPaso(2)} variant="secundario" />
               </View>
               <View style={styles.botonFlex}>
-                <Button texto="Revisar Pedido" onPress={avanzarDesdePaso3} />
+                <Button texto="Continuar" onPress={avanzarDesdePaso3} />
               </View>
             </View>
           </Card>
         ) : null}
 
-        {/* PASO 4: CONFIRMACIÓN Y ENVÍO */}
+        {/* PASO 4: CONFIRMAR */}
         {paso === 4 ? (
           <Card>
             <Text style={[styles.subtituloSeccion, { color: theme.colors.text }]}>
@@ -845,63 +846,41 @@ export default function NuevaSolicitudScreen() {
             </Text>
 
             <View style={styles.resumenWrap}>
-              <View style={styles.resumenItem}>
-                <Text style={[styles.resumenLabel, { color: theme.colors.textSecondary }]}>
-                  Modo de Entrega:
-                </Text>
-                <Text style={[styles.resumenValor, { color: theme.colors.text }]}>
-                  {modoEntrega === 'domicilio' ? 'Entrega a Domicilio' : 'Recogida en Sede'}
-                </Text>
-              </View>
+              <Text style={[styles.texto, { color: theme.colors.text }]}>
+                <Text style={{ fontWeight: 'bold' }}>Modo de Entrega:</Text>{' '}
+                {modoEntrega === 'domicilio' ? 'Entrega a Domicilio' : 'Recogida en Sede'}
+              </Text>
 
               {modoEntrega === 'domicilio' && perfil?.direcciones?.[indiceDireccion] ? (
-                <View style={styles.resumenItem}>
-                  <Text style={[styles.resumenLabel, { color: theme.colors.textSecondary }]}>
-                    Dirección:
-                  </Text>
-                  <Text style={[styles.resumenValor, { color: theme.colors.text }]}>
-                    {perfil.direcciones[indiceDireccion].direccion}
-                  </Text>
-                </View>
+                <Text style={[styles.texto, { color: theme.colors.text }]}>
+                  <Text style={{ fontWeight: 'bold' }}>Dirección:</Text>{' '}
+                  {perfil.direcciones[indiceDireccion].direccion}
+                </Text>
               ) : null}
 
-              <View style={styles.resumenItem}>
-                <Text style={[styles.resumenLabel, { color: theme.colors.textSecondary }]}>
-                  Receta Médica:
-                </Text>
-                <Text
-                  style={[
-                    styles.resumenValor,
-                    { color: imagenUri ? theme.colors.successText : theme.colors.textMuted },
-                  ]}
-                >
-                  {imagenUri ? 'Adjunta (Almacenamiento seguro)' : 'No requerida'}
-                </Text>
-              </View>
-
-              <Text style={[styles.resumenLabel, { color: theme.colors.textSecondary, marginTop: 6 }]}>
-                Medicamentos Solicitados:
+              <Text style={[styles.texto, { color: theme.colors.text, marginTop: 8, fontWeight: 'bold' }]}>
+                Medicamentos ({medicamentos.length}):
               </Text>
-              <View style={styles.medsConfirmList}>
-                {medicamentos.map((m, i) => (
-                  <View key={i} style={styles.medConfirmRow}>
-                    <Text style={[styles.medNombre, { color: theme.colors.text }]}>
-                      • {m.nombre}
-                    </Text>
-                    <Text style={[styles.medSub, { color: theme.colors.textSecondary }]}>
-                      Cantidad: {m.cantidad}
-                    </Text>
-                  </View>
-                ))}
+              {medicamentos.map((m, i) => (
+                <Text key={i} style={[styles.texto, { color: theme.colors.textSecondary, marginLeft: 8 }]}>
+                  • {m.nombre} (x{m.cantidad})
+                </Text>
+              ))}
+
+              {imagenUri ? (
+                <Text style={[styles.texto, { color: theme.colors.successText, marginTop: 8 }]}>
+                  ✓ Receta médica adjuntada correctamente.
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={styles.filaBotones}>
+              <View style={styles.botonFlex}>
+                <Button texto="Atrás" onPress={() => setPaso(3)} variant="secundario" disabled={loading} />
               </View>
-            </View>
-
-            <View style={styles.accionPrincipal}>
-              <Button texto="Confirmar y Enviar Solicitud" onPress={enviarSolicitud} loading={loading} />
-            </View>
-
-            <View style={styles.botonAtrasSolo}>
-              <Button texto="Atrás" onPress={() => setPaso(3)} variant="secundario" />
+              <View style={styles.botonFlex}>
+                <Button texto={loading ? 'Enviando...' : 'Confirmar y Enviar'} onPress={enviarSolicitud} disabled={loading} />
+              </View>
             </View>
           </Card>
         ) : null}
@@ -916,82 +895,89 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    gap: 14,
-    paddingTop: 6,
-    paddingBottom: 32,
+    gap: 16,
   },
   pasosHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    justifyContent: 'space-around',
+    paddingVertical: 12,
     borderBottomWidth: 1,
   },
   pasoItem: {
     alignItems: 'center',
-    gap: 6,
-    width: '24%',
+    gap: 4,
   },
   pasoCirculo: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pasoNumero: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   pasoNumeroActivo: {
     color: '#ffffff',
   },
   pasoLabel: {
     fontSize: 12,
-    textAlign: 'center',
     fontWeight: '600',
   },
   pasoContainer: {
-    gap: 14,
+    gap: 16,
+  },
+  toggleCardsWrap: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  toggleCard: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+  },
+  toggleTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  toggleSub: {
+    fontSize: 11,
   },
   subtituloSeccion: {
     fontSize: 16,
-    fontWeight: '700',
-  },
-  texto: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   searchInput: {
-    height: 44,
+    height: 40,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: 12,
+    marginBottom: 12,
     fontSize: 14,
-    marginTop: 8,
   },
   emptyText: {
     textAlign: 'center',
-    marginVertical: 14,
-    fontSize: 13,
+    marginVertical: 16,
+    fontSize: 14,
   },
   medsList: {
     gap: 8,
-    marginTop: 10,
   },
   catalogoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    gap: 8,
+    gap: 12,
   },
   medNombre: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
   medSub: {
     fontSize: 12,
@@ -999,102 +985,83 @@ const styles = StyleSheet.create({
   badgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
+    gap: 8,
+    marginTop: 4,
   },
   rxBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 4,
     borderWidth: 1,
   },
   rxText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
   btnAgregar: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 6,
     borderWidth: 1,
   },
   btnAgregarTexto: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
   seccionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
+  texto: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
   filaBotones: {
     flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-    marginTop: 10,
+    gap: 12,
+    marginTop: 12,
   },
   botonFlex: {
     flex: 1,
-  },
-  accionPrincipal: {
-    marginTop: 12,
-  },
-  botonAtrasSolo: {
-    marginTop: 8,
-  },
-  previewWrap: {
-    marginTop: 10,
-    gap: 8,
-  },
-  preview: {
-    width: '100%',
-    height: 180,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  previewAcciones: {
-    flexDirection: 'row',
-    gap: 8,
   },
   ocrLoading: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 8,
+    marginTop: 12,
+  },
+  previewWrap: {
+    marginTop: 12,
+    gap: 8,
+  },
+  preview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    borderWidth: 1,
+    resizeMode: 'cover',
+  },
+  previewAcciones: {
+    flexDirection: 'row',
+    gap: 12,
   },
   rowResumenMed: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ccc',
+    paddingVertical: 6,
   },
-  toggleCardsWrap: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  toggleCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    gap: 4,
-  },
-  toggleTitle: {
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  toggleSub: {
-    fontSize: 12,
+  accionPrincipal: {
+    marginTop: 8,
   },
   formList: {
-    gap: 10,
-    marginVertical: 10,
+    gap: 12,
+    marginVertical: 12,
   },
   medEditCard: {
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 8,
     borderWidth: 1,
     gap: 8,
   },
@@ -1104,39 +1071,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   medEditTitle: {
-    fontWeight: '700',
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   rowInputs: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
   },
   direccionBox: {
-    gap: 8,
     marginTop: 12,
+    gap: 8,
   },
   resumenWrap: {
-    gap: 8,
-    marginTop: 10,
-  },
-  resumenItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  resumenLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  resumenValor: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  medsConfirmList: {
-    gap: 4,
-    paddingLeft: 4,
-  },
-  medConfirmRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 6,
+    marginVertical: 12,
   },
 });

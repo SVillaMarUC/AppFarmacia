@@ -14,13 +14,11 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import type { ItemInventario } from '@/types';
+import { medicamentosIniciales } from '@/constants/medicamentos';
 
 export const DIAS_ALERTA_PROXIMO_VENCIMIENTO = 30;
 
 export const medicationService = {
-  /**
-   * Escucha en tiempo real la lista completa de medicamentos/inventario
-   */
   escucharInventario(callback: (items: ItemInventario[]) => void): () => void {
     const ref = collection(db, 'inventario');
     return onSnapshot(
@@ -57,12 +55,21 @@ export const medicationService = {
   },
 
   /**
-   * Obtiene los medicamentos activos disponibles para afiliados
+   * Obtiene los medicamentos activos disponibles para afiliados.
+   * Si la base de datos está vacía, realiza la siembra inicial automática.
    */
   async obtenerCatalogoAfiliado(): Promise<ItemInventario[]> {
     try {
       const q = query(collection(db, 'inventario'), where('activo', '==', true));
-      const snap = await getDocs(q);
+      let snap = await getDocs(q);
+
+      // Si el inventario en Firestore está vacío, se siembran automáticamente los medicamentos iniciales
+      if (snap.empty) {
+        console.log('[MedicationService] Inventario vacío. Cargando medicamentos iniciales automáticamente...');
+        await medicationService.cargarMedicamentosIniciales();
+        snap = await getDocs(q); // Volver a consultar tras insertar
+      }
+
       return snap.docs.map((d) => {
         const data = d.data();
         return {
@@ -84,7 +91,19 @@ export const medicationService = {
       });
     } catch (error) {
       console.error('[MedicationService] obtenerCatalogoAfiliado error:', error);
-      throw new Error('No fue posible obtener el catálogo de medicamentos.');
+      
+      // Fallback local en caso de error de conexión a Firestore
+      return medicamentosIniciales.map((m, index) => {
+        const med = m as Partial<ItemInventario>;
+        return {
+          id: String(index + 1),
+          ...med,
+          nombre: med.nombre || '',
+          stock: med.stock ?? 20,
+          stockMinimo: med.stockMinimo ?? 5,
+          activo: true,
+        } as ItemInventario;
+      });
     }
   },
 
@@ -105,6 +124,56 @@ export const medicationService = {
     } catch (error) {
       console.error('[MedicationService] crearMedicamento error:', error);
       throw new Error('No fue posible registrar el medicamento.');
+    }
+  },
+
+  /**
+   * Carga los medicamentos iniciales en Firestore.
+   * Si un medicamento ya existe por nombre, no lo vuelve a registrar.
+   * Retorna la cantidad de medicamentos nuevos agregados.
+   */
+  async cargarMedicamentosIniciales(): Promise<number> {
+    try {
+      let cantidadAgregada = 0;
+
+      for (const item of medicamentosIniciales) {
+        const med = item as Partial<ItemInventario>;
+        const nombreMed = med.nombre || '';
+
+        const q = query(
+          collection(db, 'inventario'),
+          where('nombre', '==', nombreMed)
+        );
+
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          continue;
+        }
+
+        // Crear medicamento nuevo con respaldo de tipos explícito
+        await addDoc(collection(db, 'inventario'), {
+          ...med,
+          stock: Math.max(0, Number(med.stock ?? 0)),
+          stockMinimo: Math.max(0, Number(med.stockMinimo ?? 5)),
+          activo: med.activo !== false,
+          creadoEn: serverTimestamp(),
+          actualizadoEn: serverTimestamp(),
+        });
+
+        cantidadAgregada++;
+      }
+
+      return cantidadAgregada;
+    } catch (error) {
+      console.error(
+        '[MedicationService] cargarMedicamentosIniciales error:',
+        error
+      );
+
+      throw new Error(
+        'No fue posible cargar los medicamentos iniciales.'
+      );
     }
   },
 
@@ -134,7 +203,7 @@ export const medicationService = {
    * Cambia el estado activo / inactivo de un medicamento
    */
   async toggleActivo(id: string, activoActual: boolean): Promise<void> {
-    return this.actualizarMedicamento(id, { activo: !activoActual });
+    return medicationService.actualizarMedicamento(id, { activo: !activoActual });
   },
 
   /**
