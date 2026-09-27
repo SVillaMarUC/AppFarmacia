@@ -7,24 +7,32 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function existeUsuarioDoc() {
+      return autenticado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
     function usuarioData() {
       return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
     }
 
+    function tieneRol(rol) {
+      return existeUsuarioDoc() && ('rol' in usuarioData()) && usuarioData().rol == rol;
+    }
+
     function esAdmin() {
-      return autenticado() && usuarioData().rol == 'administrador';
+      return tieneRol('administrador');
     }
 
     function esDespachador() {
-      return autenticado() && usuarioData().rol == 'despachador';
+      return tieneRol('despachador');
     }
 
     function esDomiciliario() {
-      return autenticado() && usuarioData().rol == 'domiciliario';
+      return tieneRol('domiciliario');
     }
 
     function esAfiliado() {
-      return autenticado() && usuarioData().rol == 'afiliado';
+      return tieneRol('afiliado');
     }
 
     // =========================================================
