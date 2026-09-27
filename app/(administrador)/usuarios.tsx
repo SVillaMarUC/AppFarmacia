@@ -22,11 +22,11 @@ import type { Usuario } from '@/types';
 
 type Rol = Usuario['rol'];
 
-const ROLES_DISPONIBLES: { label: string; valor: Rol }[] = [
-  { label: 'Afiliado', valor: 'afiliado' },
-  { label: 'Despachador', valor: 'despachador' },
-  { label: 'Domiciliario', valor: 'domiciliario' },
-  { label: 'Administrador', valor: 'administrador' },
+const ROLES_DISPONIBLES: { label: string; valor: Rol; icon: any }[] = [
+  { label: 'Afiliado', valor: 'afiliado', icon: 'person-outline' },
+  { label: 'Despachador', valor: 'despachador', icon: 'cube-outline' },
+  { label: 'Domiciliario', valor: 'domiciliario', icon: 'bicycle-outline' },
+  { label: 'Administrador', valor: 'administrador', icon: 'shield-checkmark-outline' },
 ];
 
 export default function AdminUsuariosScreen() {
@@ -119,7 +119,7 @@ export default function AdminUsuariosScreen() {
             />
 
             {/* Chips de filtro por rol */}
-            <View style={styles.filterChipsRow}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsRow}>
               {(['todos', 'afiliado', 'despachador', 'domiciliario', 'administrador'] as const).map((rol) => {
                 const activo = filtroRol === rol;
                 return (
@@ -145,7 +145,7 @@ export default function AdminUsuariosScreen() {
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
           </View>
         </Card>
 
@@ -167,23 +167,35 @@ export default function AdminUsuariosScreen() {
                 <Card key={u.uid}>
                   <View style={styles.userCardContent}>
                     <View style={styles.userHeader}>
-                      <View style={styles.avatar}>
-                        <Ionicons name="person-circle-outline" size={40} color={theme.colors.primary} />
+                      <View style={[styles.avatar, { backgroundColor: theme.colors.surfaceSecondary }]}>
+                        <Ionicons name="person" size={20} color={theme.colors.primary} />
                       </View>
                       <View style={styles.userInfo}>
                         <Text style={[styles.userName, { color: theme.colors.text }]}>
                           {u.nombre || 'Sin nombre'}
                         </Text>
-                        <Text style={[styles.userEmail, { color: theme.colors.textSecondary }]}>
+                        <Text style={[styles.userEmail, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                           {u.email || 'Sin correo'}
-                        </Text>
-                        <Text style={[styles.userMeta, { color: theme.colors.textSecondary }]}>
-                          C.C. {u.cedula} • EPS: {u.eps || 'N/A'}
                         </Text>
                       </View>
                       <View style={[styles.roleBadge, { backgroundColor: badge.bg }]}>
                         <Text style={[styles.roleBadgeText, { color: badge.text }]}>
                           {u.rol}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.metaRow}>
+                      <View style={styles.metaItem}>
+                        <Ionicons name="card-outline" size={13} color={theme.colors.textSecondary} />
+                        <Text style={[styles.userMeta, { color: theme.colors.textSecondary }]}>
+                          C.C. {u.cedula}
+                        </Text>
+                      </View>
+                      <View style={styles.metaItem}>
+                        <Ionicons name="medical-outline" size={13} color={theme.colors.textSecondary} />
+                        <Text style={[styles.userMeta, { color: theme.colors.textSecondary }]}>
+                          EPS: {u.eps || 'N/A'}
                         </Text>
                       </View>
                     </View>
@@ -231,7 +243,13 @@ export default function AdminUsuariosScreen() {
               },
             ]}
           >
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Cambiar Rol de Usuario</Text>
+            <View style={styles.modalHeaderRow}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Cambiar Rol de Usuario</Text>
+              <TouchableOpacity onPress={() => setUsuarioEditando(null)}>
+                <Ionicons name="close" size={22} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
             <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>
               Usuario: <Text style={{ fontWeight: '700', color: theme.colors.text }}>{usuarioEditando?.nombre}</Text>
             </Text>
@@ -239,7 +257,7 @@ export default function AdminUsuariosScreen() {
               Cédula: {usuarioEditando?.cedula}
             </Text>
 
-            <Text style={[styles.label, { color: theme.colors.text, marginTop: 10 }]}>Seleccionar nuevo rol:</Text>
+            <Text style={[styles.label, { color: theme.colors.text, marginTop: 8 }]}>Seleccionar nuevo rol:</Text>
             <View style={styles.rolesOptionsList}>
               {ROLES_DISPONIBLES.map((r) => {
                 const seleccionado = nuevoRol === r.valor;
@@ -256,8 +274,8 @@ export default function AdminUsuariosScreen() {
                     onPress={() => setNuevoRol(r.valor)}
                   >
                     <Ionicons
-                      name={seleccionado ? 'radio-button-on' : 'radio-button-off'}
-                      size={20}
+                      name={r.icon}
+                      size={18}
                       color={seleccionado ? theme.colors.primary : theme.colors.textSecondary}
                     />
                     <Text
@@ -266,11 +284,17 @@ export default function AdminUsuariosScreen() {
                         {
                           color: seleccionado ? theme.colors.primary : theme.colors.text,
                           fontWeight: seleccionado ? '700' : '500',
+                          flex: 1,
                         },
                       ]}
                     >
                       {r.label}
                     </Text>
+                    <Ionicons
+                      name={seleccionado ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={20}
+                      color={seleccionado ? theme.colors.primary : theme.colors.textSecondary}
+                    />
                   </Pressable>
                 );
               })}
@@ -301,9 +325,8 @@ const styles = StyleSheet.create({
   block: { gap: 10 },
   filterChipsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-    marginTop: 4,
+    paddingVertical: 2,
   },
   chip: {
     paddingHorizontal: 12,
@@ -325,7 +348,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   userCardContent: {
-    gap: 10,
+    gap: 8,
   },
   userHeader: {
     flexDirection: 'row',
@@ -333,8 +356,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   avatar: {
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -347,7 +371,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   userEmail: {
-    fontSize: 13,
+    fontSize: 12,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 4,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   userMeta: {
     fontSize: 12,
@@ -356,7 +391,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
   },
   roleBadgeText: {
     fontSize: 11,
@@ -364,7 +398,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   actionRow: {
-    marginTop: 4,
+    marginTop: 2,
   },
   emptyBox: {
     padding: 24,
@@ -384,15 +418,20 @@ const styles = StyleSheet.create({
   modalCard: {
     borderRadius: 16,
     borderWidth: 1,
-    padding: 20,
-    gap: 10,
+    padding: 18,
+    gap: 8,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
   },
   modalSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
   },
   label: {
     fontSize: 13,
@@ -405,7 +444,7 @@ const styles = StyleSheet.create({
   roleOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
@@ -415,6 +454,6 @@ const styles = StyleSheet.create({
   },
   modalButtons: {
     gap: 8,
-    marginTop: 10,
+    marginTop: 6,
   },
 });

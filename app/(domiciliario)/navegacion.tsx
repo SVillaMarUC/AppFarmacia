@@ -309,21 +309,18 @@ export default function NavegacionScreen() {
         {/* Mapa con OpenStreetMap */}
         <Card>
           <View style={styles.block}>
-            <Text style={[styles.seccionTitulo, { color: theme.colors.text }]}>Tu Ubicación GPS (OpenStreetMap)</Text>
-            {ubicacion ? (
-              <PlatformMap
-                latitude={ubicacion.latitud}
-                longitude={ubicacion.longitud}
-                title="Tu posición actual"
-                description="Domiciliario en ruta"
-                height={200}
-              />
-            ) : (
-              <View style={styles.loadingBox}>
-                <ActivityIndicator color={theme.colors.primary} size="large" />
-                <Text style={{ color: theme.colors.textSecondary, marginTop: 8 }}>Obteniendo posición GPS...</Text>
-              </View>
-            )}
+            <View style={styles.seccionHeader}>
+              <Ionicons name="navigate-circle" size={20} color={theme.colors.primary} />
+              <Text style={[styles.seccionTitulo, { color: theme.colors.text }]}>Tu Ubicación GPS (Ruta de Entrega)</Text>
+            </View>
+
+            <PlatformMap
+              latitude={ubicacion?.latitud ?? 4.711}
+              longitude={ubicacion?.longitud ?? -74.072}
+              title={ubicacion ? 'Tu posición actual' : 'Localizando...'}
+              description={ubicacion ? 'Domiciliario en ruta activa' : 'Obteniendo señal GPS...'}
+              height={220}
+            />
 
             {permisoDenegado && (
               <View style={styles.block}>
@@ -332,9 +329,13 @@ export default function NavegacionScreen() {
               </View>
             )}
 
-            {ubicacion && (
+            {ubicacion ? (
               <Text style={[styles.coordInfo, { color: theme.colors.textSecondary }]}>
                 Lat: {ubicacion.latitud.toFixed(6)} | Lng: {ubicacion.longitud.toFixed(6)} | Precisión: ±{Math.round(ubicacion.precision)}m
+              </Text>
+            ) : (
+              <Text style={[styles.coordInfo, { color: theme.colors.textSecondary }]}>
+                Obteniendo señal GPS de alta precisión...
               </Text>
             )}
           </View>
@@ -487,6 +488,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, gap: 14, paddingBottom: 36 },
   block: { gap: 8 },
+  seccionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   seccionTitulo: { fontSize: 16, fontWeight: '700' },
   loadingBox: { height: 160, justifyContent: 'center', alignItems: 'center' },
   coordInfo: { fontSize: 12, textAlign: 'center', marginTop: 4 },
