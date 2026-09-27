@@ -12,6 +12,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "test": "npx tsx tests/business-logic.test.ts",
     "doctor": "expo-doctor",
     "eas:build:preview:android": "npx eas-cli build --platform android --profile preview",
     "eas:build:preview:ios": "npx eas-cli build --platform ios --profile preview"

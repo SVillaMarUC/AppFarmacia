@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
+import type { Timestamp } from 'firebase/firestore';
 import { useTheme } from '@/context/ThemeContext';
+import { medicationService } from '@/services/medication.service';
 
 type Props = {
   stock: number;
@@ -7,6 +9,7 @@ type Props = {
   tipo?: 'stock' | 'vencimiento';
   vencimientoEstado?: 'vigente' | 'proximo_a_vencer' | 'vencido' | 'sin_fecha';
   diasRestantes?: number;
+  fechaVencimiento?: Timestamp | Date | string | null;
 };
 
 export const StockIndicator = ({
@@ -15,16 +18,27 @@ export const StockIndicator = ({
   tipo = 'stock',
   vencimientoEstado,
   diasRestantes,
+  fechaVencimiento,
 }: Props) => {
   const { theme } = useTheme();
 
+  // Si se pasa fechaVencimiento directamente y tipo es vencimiento o general
+  let finalVencimientoEstado = vencimientoEstado;
+  let finalDiasRestantes = diasRestantes;
+
+  if (fechaVencimiento && (!finalVencimientoEstado || finalVencimientoEstado === 'sin_fecha')) {
+    const ev = medicationService.evaluarVencimiento(fechaVencimiento);
+    finalVencimientoEstado = ev.estado;
+    finalDiasRestantes = ev.diasRestantes;
+  }
+
   if (tipo === 'vencimiento') {
-    if (!vencimientoEstado || vencimientoEstado === 'sin_fecha') {
+    if (!finalVencimientoEstado || finalVencimientoEstado === 'sin_fecha') {
       return null;
     }
 
-    const isVencido = vencimientoEstado === 'vencido';
-    const isProximo = vencimientoEstado === 'proximo_a_vencer';
+    const isVencido = finalVencimientoEstado === 'vencido';
+    const isProximo = finalVencimientoEstado === 'proximo_a_vencer';
 
     const bg = isVencido ? theme.colors.errorBg : isProximo ? theme.colors.warningBg : theme.colors.successBg;
     const textColor = isVencido ? theme.colors.errorText : isProximo ? theme.colors.warningText : theme.colors.successText;
@@ -32,7 +46,7 @@ export const StockIndicator = ({
     const etiqueta = isVencido
       ? 'Vencido'
       : isProximo
-      ? `Vence en ${diasRestantes}d`
+      ? `Vence en ${finalDiasRestantes}d`
       : 'Vigente';
 
     return (
@@ -48,7 +62,7 @@ export const StockIndicator = ({
   const bg = isCritico ? theme.colors.errorBg : isBajo ? theme.colors.warningBg : theme.colors.successBg;
   const textColor = isCritico ? theme.colors.errorText : isBajo ? theme.colors.warningText : theme.colors.successText;
   const borderColor = isCritico ? theme.colors.error : isBajo ? theme.colors.warning : theme.colors.success;
-  const etiqueta = stock <= 0 ? 'Agotado' : isCritico ? 'Crítico' : isBajo ? 'Bajo' : 'OK';
+  const etiqueta = stock <= 0 ? 'Agotado' : isCritico ? `Crítico (${stock})` : isBajo ? `Bajo (${stock})` : `Stock: ${stock}`;
 
   return (
     <View style={[styles.container, { backgroundColor: bg, borderColor }]}>

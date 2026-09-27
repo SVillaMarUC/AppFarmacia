@@ -55,10 +55,7 @@ const config: ExpoConfig = {
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     supabaseStorageBucket: process.env.EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET,
-    googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-    googleVisionApiKey: process.env.EXPO_PUBLIC_GOOGLE_VISION_API_KEY,
     disableStorageUploads: process.env.EXPO_PUBLIC_DISABLE_STORAGE_UPLOADS,
-    disableGoogleVision: process.env.EXPO_PUBLIC_DISABLE_GOOGLE_VISION,
   },
 };
 
