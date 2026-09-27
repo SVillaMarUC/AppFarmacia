@@ -36,6 +36,15 @@ export default function AdministradorLayout() {
           }}
         />
         <Tabs.Screen
+          name="inventario"
+          options={{
+            title: 'Inventario',
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'medkit' : 'medkit-outline'} color={color} size={size ?? 24} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="reportes"
           options={{
             title: 'Reportes',

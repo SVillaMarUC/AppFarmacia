@@ -14,7 +14,8 @@ import type { EstadoReceta, RecetaMedica, RecetaOCRItem } from '@/types';
 
 export const prescriptionService = {
   /**
-   * Sube la imagen de la receta al Object Storage (Supabase) y guarda los metadatos en Firestore
+   * Sube la imagen de la receta al Object Storage (Supabase Storage / Fallback) y guarda los metadatos en Firestore.
+   * NUNCA almacena base64 en Firestore.
    */
   async crearReceta(
     usuarioId: string,
@@ -25,7 +26,14 @@ export const prescriptionService = {
     }
   ): Promise<RecetaMedica> {
     try {
-      // 1. Subir la imagen a Object Storage (NUNCA almacenar base64 en Firestore)
+      if (!usuarioId) {
+        throw new Error('ID de usuario requerido para registrar la receta.');
+      }
+      if (!localUri) {
+        throw new Error('URI de imagen requerida para la receta médica.');
+      }
+
+      // 1. Subir la imagen a Object Storage
       const uploadResult = await storageService.uploadReceta(localUri, usuarioId);
 
       // 2. Guardar únicamente los metadatos y la ruta relativa en Firestore
@@ -66,6 +74,7 @@ export const prescriptionService = {
    */
   async obtenerReceta(recetaId: string): Promise<RecetaMedica | null> {
     try {
+      if (!recetaId) return null;
       const snap = await getDoc(doc(db, 'recetas', recetaId));
       if (!snap.exists()) return null;
 
@@ -79,7 +88,7 @@ export const prescriptionService = {
       } as RecetaMedica;
     } catch (error) {
       console.error('[PrescriptionService] Error al obtener receta:', error);
-      throw new Error('No fue posible obtener los datos de la receta.');
+      throw new Error('No fue posible obtener los datos de la receta médica.');
     }
   },
 

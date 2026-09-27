@@ -4,8 +4,8 @@ import { useTheme } from '@/context/ThemeContext';
 import type { PlatformMapProps } from './PlatformMap.types';
 
 /**
- * Fallback de mapa para versión Web.
- * Presenta una interfaz visual elegante con coordenadas geográficas y acceso directo a Google Maps web.
+ * Componente de mapa para versión Web / Fallback con OpenStreetMap libre.
+ * No depende de servicios ni APIs de Google.
  */
 export const PlatformMap = ({
   latitude,
@@ -13,11 +13,12 @@ export const PlatformMap = ({
   title = 'Ubicación',
   description,
   height = 200,
+  markers = [],
 }: PlatformMapProps) => {
   const { theme } = useTheme();
 
-  const handleOpenExternal = () => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+  const handleOpenOpenStreetMap = () => {
+    const url = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=16/${latitude}/${longitude}`;
     void Linking.openURL(url);
   };
 
@@ -43,7 +44,7 @@ export const PlatformMap = ({
             { backgroundColor: theme.colors.primaryLight },
           ]}
         >
-          <Text style={[styles.badgeText, { color: theme.colors.primary }]}>Vista Web</Text>
+          <Text style={[styles.badgeText, { color: theme.colors.primary }]}>OpenStreetMap</Text>
         </View>
       </View>
 
@@ -67,13 +68,21 @@ export const PlatformMap = ({
         </Text>
       </View>
 
+      {markers.length > 0 && (
+        <View style={styles.markersSummary}>
+          <Text style={[styles.markersText, { color: theme.colors.textSecondary }]}>
+            {markers.length} punto(s) adicional(es) en ruta
+          </Text>
+        </View>
+      )}
+
       <TouchableOpacity
         style={[styles.externalButton, { backgroundColor: theme.colors.primary }]}
-        onPress={handleOpenExternal}
+        onPress={handleOpenOpenStreetMap}
         activeOpacity={0.8}
       >
-        <Ionicons name="open-outline" size={16} color="#ffffff" />
-        <Text style={styles.externalButtonText}>Ver en Google Maps</Text>
+        <Ionicons name="map-outline" size={16} color="#ffffff" />
+        <Text style={styles.externalButtonText}>Ver en OpenStreetMap</Text>
       </TouchableOpacity>
     </View>
   );
@@ -122,10 +131,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    marginVertical: 8,
+    marginVertical: 4,
   },
   coordText: {
     fontSize: 13,
+  },
+  markersSummary: {
+    alignItems: 'center',
+  },
+  markersText: {
+    fontSize: 11,
+    fontStyle: 'italic',
   },
   externalButton: {
     flexDirection: 'row',

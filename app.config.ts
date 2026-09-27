@@ -20,7 +20,6 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'com.farmaya.app',
-    versionCode: 6,
     permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'POST_NOTIFICATIONS'],
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
@@ -56,10 +55,7 @@ const config: ExpoConfig = {
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     supabaseStorageBucket: process.env.EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET,
-    googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-    googleVisionApiKey: process.env.EXPO_PUBLIC_GOOGLE_VISION_API_KEY,
     disableStorageUploads: process.env.EXPO_PUBLIC_DISABLE_STORAGE_UPLOADS,
-    disableGoogleVision: process.env.EXPO_PUBLIC_DISABLE_GOOGLE_VISION,
   },
 };
 
