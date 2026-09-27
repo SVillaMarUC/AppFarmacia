@@ -367,9 +367,9 @@ export default function DespacharScreen() {
         {/* Pestañas con Contadores */}
         <View style={styles.tabsRow}>
           {[
-            { id: 'por_preparar', label: '1. Por Preparar', count: conteos.porPreparar, icon: 'time-outline' },
-            { id: 'listos', label: '2. Listos', count: conteos.listos, icon: 'checkmark-done-outline' },
-            { id: 'en_ruta', label: '3. En Ruta', count: conteos.enRuta, icon: 'bicycle-outline' },
+            { id: 'por_preparar', label: 'Pendientes', count: conteos.porPreparar, icon: 'time-outline' },
+            { id: 'listos', label: 'Listos', count: conteos.listos, icon: 'checkmark-done-outline' },
+            { id: 'en_ruta', label: 'En Ruta', count: conteos.enRuta, icon: 'bicycle-outline' },
           ].map((t) => {
             const activo = tab === t.id;
             return (
@@ -390,7 +390,7 @@ export default function DespacharScreen() {
                   size={15}
                   color={activo ? '#ffffff' : theme.colors.textSecondary}
                 />
-                <Text style={[styles.tabText, { color: activo ? '#ffffff' : theme.colors.text }]}>
+                <Text style={[styles.tabText, { color: activo ? '#ffffff' : theme.colors.text }]} numberOfLines={1}>
                   {t.label}
                 </Text>
                 <View
@@ -572,6 +572,7 @@ export default function DespacharScreen() {
                                 : theme.colors.text,
                           },
                         ]}
+                        numberOfLines={3}
                       >
                         {pedido.estado === 'pendiente' && requiereReceta && !recetaAprobada
                           ? 'Paso 1: Revisa y valida la fórmula médica antes de empacar.'
@@ -903,7 +904,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
   },
-  tabText: { fontSize: 12, fontWeight: '700' },
+  tabText: { fontSize: 11, fontWeight: '700', flexShrink: 1 },
   tabBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,

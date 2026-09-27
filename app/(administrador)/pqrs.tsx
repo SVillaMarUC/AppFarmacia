@@ -168,12 +168,12 @@ export default function PqrsScreen() {
         <Button texto="← Volver al Dashboard" onPress={() => router.back()} variant="secundario" />
 
         {/* Filtros con Contadores */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtrosRow}>
+        <View style={styles.filtrosGrid}>
           {[
-            { id: 'todos', label: 'Todos', count: conteos.todos },
-            { id: 'pendiente', label: 'Pendientes', count: conteos.pendiente },
-            { id: 'en_revision', label: 'En Revisión', count: conteos.en_revision },
-            { id: 'resuelto', label: 'Resueltos', count: conteos.resuelto },
+            { id: 'todos', label: 'Todos', count: conteos.todos, icon: 'grid-outline' },
+            { id: 'pendiente', label: 'Pendientes', count: conteos.pendiente, icon: 'time-outline' },
+            { id: 'en_revision', label: 'En Revisión', count: conteos.en_revision, icon: 'eye-outline' },
+            { id: 'resuelto', label: 'Resueltos', count: conteos.resuelto, icon: 'checkmark-circle-outline' },
           ].map((f) => {
             const activo = filtro === f.id;
             return (
@@ -181,25 +181,39 @@ export default function PqrsScreen() {
                 key={f.id}
                 onPress={() => setFiltro(f.id as FiltroPqrs)}
                 style={[
-                  styles.filtroBtn,
+                  styles.filtroTile,
                   {
                     backgroundColor: activo ? theme.colors.primary : theme.colors.surface,
                     borderColor: activo ? theme.colors.primary : theme.colors.border,
                   },
                 ]}
               >
+                <Ionicons
+                  name={f.icon as any}
+                  size={18}
+                  color={activo ? '#ffffff' : theme.colors.textSecondary}
+                />
                 <Text
                   style={[
-                    styles.filtroText,
-                    { color: activo ? '#ffffff' : theme.colors.textSecondary },
+                    styles.filtroTileLabel,
+                    { color: activo ? '#ffffff' : theme.colors.text },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {f.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.filtroTileCount,
+                    { color: activo ? 'rgba(255,255,255,0.8)' : theme.colors.textSecondary },
                   ]}
                 >
-                  {f.label} ({f.count})
+                  {f.count}
                 </Text>
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
 
         {loading ? (
           <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 20 }} />
@@ -282,14 +296,23 @@ export default function PqrsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, gap: 12 },
-  filtrosRow: { flexDirection: 'row', gap: 6, paddingVertical: 2 },
-  filtroBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
+  filtrosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  filtroText: { fontSize: 12, fontWeight: '700' },
+  filtroTile: {
+    width: '48%',
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 4,
+  },
+  filtroTileLabel: { fontSize: 12, fontWeight: '700' },
+  filtroTileCount: { fontSize: 18, fontWeight: '800' },
   list: { gap: 10, paddingBottom: 24 },
   cardItem: { gap: 6 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
