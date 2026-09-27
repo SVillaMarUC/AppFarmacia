@@ -68,9 +68,7 @@ export default function InicioAfiliadoScreen() {
           <Button texto="Mis Pedidos" onPress={() => router.push('/(afiliado)/historial')} variant="secundario" />
           <Button
             texto="Soporte y PQRS"
-            onPress={() =>
-              Alert.alert('Próximamente', 'La creación de PQRS para afiliados se habilita en una siguiente fase.')
-            }
+            onPress={() => router.push('/(afiliado)/pqrs')}
             variant="secundario"
           />
         </View>

@@ -84,20 +84,23 @@ export const firestoreService = {
     try {
       const q = query(
         collection(db, 'pedidos'),
-        where('usuarioId', '==', uid),
-        where('estado', 'in', ['pendiente', 'asignado', 'en_preparacion', 'listo', 'en_camino'])
+        where('usuarioId', '==', uid)
       );
 
       return onSnapshot(
         q,
         (snapshot) => {
-          const docItem = snapshot.docs[0];
-          if (!docItem) {
-            callback(null);
-            return;
-          }
-          const pedido = { id: docItem.id, ...(docItem.data() as Omit<Pedido, 'id'>) } as Pedido;
-          callback(pedido);
+          const estadosActivos = ['pendiente', 'asignado', 'en_preparacion', 'listo', 'en_camino'];
+          const pedidos = snapshot.docs
+            .map((docItem) => ({ id: docItem.id, ...(docItem.data() as Omit<Pedido, 'id'>) } as Pedido))
+            .filter((p) => estadosActivos.includes(p.estado))
+            .sort((a, b) => {
+              const timeA = a.timestampCreacion && 'toMillis' in a.timestampCreacion ? a.timestampCreacion.toMillis() : 0;
+              const timeB = b.timestampCreacion && 'toMillis' in b.timestampCreacion ? b.timestampCreacion.toMillis() : 0;
+              return timeB - timeA;
+            });
+
+          callback(pedidos[0] || null);
         },
         (error) => {
           console.error('[Firestore Error] escucharPedidoActivo:', error);
