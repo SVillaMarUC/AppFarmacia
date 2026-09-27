@@ -178,12 +178,17 @@ export default function ReportesScreen() {
                     </View>
                     {stats.stockAgotado.map((m) => (
                       <View key={m.id} style={[styles.itemAlertaCard, { borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceSecondary }]}>
-                        <Text style={[styles.itemAlertaNombre, { color: theme.colors.text }]}>
+                        <Text style={[styles.itemAlertaNombre, { color: theme.colors.text }]} numberOfLines={2}>
                           {m.nombre}
                         </Text>
-                        <Text style={[styles.itemAlertaStock, { color: theme.colors.error }]}>
-                          Stock: 0 / Mín: {m.stockMinimo}
-                        </Text>
+                        <View style={styles.alertaChipsRow}>
+                          <View style={[styles.alertaChip, { backgroundColor: '#fee2e2' }]}>
+                            <Text style={[styles.alertaChipText, { color: '#b91c1c' }]}>Stock: 0</Text>
+                          </View>
+                          <View style={[styles.alertaChip, { backgroundColor: '#fef3c7' }]}>
+                            <Text style={[styles.alertaChipText, { color: '#92400e' }]}>Mín: {m.stockMinimo}</Text>
+                          </View>
+                        </View>
                       </View>
                     ))}
                   </View>
@@ -200,12 +205,17 @@ export default function ReportesScreen() {
                     </View>
                     {stats.stockBajo.slice(0, 5).map((m) => (
                       <View key={m.id} style={[styles.itemAlertaCard, { borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceSecondary }]}>
-                        <Text style={[styles.itemAlertaNombre, { color: theme.colors.text }]}>
+                        <Text style={[styles.itemAlertaNombre, { color: theme.colors.text }]} numberOfLines={2}>
                           {m.nombre}
                         </Text>
-                        <Text style={[styles.itemAlertaStock, { color: '#d97706' }]}>
-                          Stock actual: {m.stock} (Mín: {m.stockMinimo})
-                        </Text>
+                        <View style={styles.alertaChipsRow}>
+                          <View style={[styles.alertaChip, { backgroundColor: '#fef3c7' }]}>
+                            <Text style={[styles.alertaChipText, { color: '#92400e' }]}>Stock: {m.stock}</Text>
+                          </View>
+                          <View style={[styles.alertaChip, { backgroundColor: '#fef3c7' }]}>
+                            <Text style={[styles.alertaChipText, { color: '#92400e' }]}>Mín: {m.stockMinimo}</Text>
+                          </View>
+                        </View>
                       </View>
                     ))}
                   </View>
@@ -222,12 +232,17 @@ export default function ReportesScreen() {
                     </View>
                     {stats.proximosVencer.map((m) => (
                       <View key={m.id} style={[styles.itemAlertaCard, { borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceSecondary }]}>
-                        <Text style={[styles.itemAlertaNombre, { color: theme.colors.text }]}>
+                        <Text style={[styles.itemAlertaNombre, { color: theme.colors.text }]} numberOfLines={2}>
                           {m.nombre}
                         </Text>
-                        <Text style={[styles.itemAlertaStock, { color: '#dc2626' }]}>
-                          Vence: {String(m.fechaVencimiento).slice(0, 10)} · Lote: {m.lote || 'N/A'}
-                        </Text>
+                        <View style={styles.alertaChipsRow}>
+                          <View style={[styles.alertaChip, { backgroundColor: '#fee2e2' }]}>
+                            <Text style={[styles.alertaChipText, { color: '#b91c1c' }]}>Vence: {String(m.fechaVencimiento).slice(0, 10)}</Text>
+                          </View>
+                          <View style={[styles.alertaChip, { backgroundColor: '#f1f5f9' }]}>
+                            <Text style={[styles.alertaChipText, { color: '#475569' }]}>Lote: {m.lote || 'N/A'}</Text>
+                          </View>
+                        </View>
                       </View>
                     ))}
                   </View>
@@ -272,16 +287,16 @@ const styles = StyleSheet.create({
   alertaBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   alertaBadgeText: { fontSize: 11, fontWeight: '700' },
   itemAlertaCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
+    gap: 6,
   },
-  itemAlertaNombre: { fontSize: 13, fontWeight: '600', flex: 1 },
-  itemAlertaStock: { fontSize: 12, fontWeight: '700' },
+  itemAlertaNombre: { fontSize: 13, fontWeight: '600' },
+  alertaChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  alertaChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  alertaChipText: { fontSize: 11, fontWeight: '700' },
   okState: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -119,14 +119,14 @@ export default function AdminUsuariosScreen() {
             />
 
             {/* Chips de filtro por rol */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsRow}>
+            <View style={styles.filterGrid}>
               {(['todos', 'afiliado', 'despachador', 'domiciliario', 'administrador'] as const).map((rol) => {
                 const activo = filtroRol === rol;
                 return (
                   <TouchableOpacity
                     key={rol}
                     style={[
-                      styles.chip,
+                      styles.filterTile,
                       {
                         backgroundColor: activo ? theme.colors.primary : theme.colors.surfaceSecondary,
                         borderColor: activo ? theme.colors.primary : theme.colors.border,
@@ -136,16 +136,17 @@ export default function AdminUsuariosScreen() {
                   >
                     <Text
                       style={[
-                        styles.chipText,
+                        styles.filterTileText,
                         { color: activo ? '#ffffff' : theme.colors.textSecondary },
                       ]}
+                      numberOfLines={1}
                     >
                       {rol.charAt(0).toUpperCase() + rol.slice(1)}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
         </Card>
 
@@ -323,20 +324,23 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, gap: 14, paddingBottom: 36 },
   block: { gap: 10 },
-  filterChipsRow: {
+  filterGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
-    paddingVertical: 2,
+    marginTop: 4,
   },
-  chip: {
+  filterTile: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingVertical: 7,
+    borderRadius: 8,
     borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  chipText: {
+  filterTileText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   loadingBox: {
     height: 180,

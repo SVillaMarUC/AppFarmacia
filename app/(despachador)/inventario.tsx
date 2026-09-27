@@ -211,20 +211,20 @@ export default function InventarioScreen() {
         </View>
 
         {/* Filtros rápidos */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtrosRow}>
+        <View style={styles.filtrosGrid}>
           {[
-            { id: 'todos', label: `Todos (${items.length})` },
-            { id: 'receta', label: 'Con Receta' },
-            { id: 'stock_bajo', label: 'Stock Bajo' },
-            { id: 'vencimiento', label: 'Vencimiento Próximo' },
-            { id: 'inactivos', label: 'Inactivos' },
+            { id: 'todos', label: `Todos (${items.length})`, icon: 'grid-outline' },
+            { id: 'receta', label: 'Con Receta', icon: 'document-text-outline' },
+            { id: 'stock_bajo', label: 'Stock Bajo', icon: 'alert-circle-outline' },
+            { id: 'vencimiento', label: 'Por Vencer', icon: 'calendar-outline' },
+            { id: 'inactivos', label: 'Inactivos', icon: 'eye-off-outline' },
           ].map((f) => {
             const activo = filtro === f.id;
             return (
               <TouchableOpacity
                 key={f.id}
                 style={[
-                  styles.filtroChip,
+                  styles.filtroTile,
                   {
                     backgroundColor: activo ? theme.colors.primary : theme.colors.surfaceSecondary,
                     borderColor: activo ? theme.colors.primary : theme.colors.border,
@@ -232,18 +232,24 @@ export default function InventarioScreen() {
                 ]}
                 onPress={() => setFiltro(f.id as FiltroTipo)}
               >
+                <Ionicons
+                  name={f.icon as any}
+                  size={16}
+                  color={activo ? '#ffffff' : theme.colors.textSecondary}
+                />
                 <Text
                   style={[
-                    styles.filtroChipText,
+                    styles.filtroTileText,
                     { color: activo ? '#ffffff' : theme.colors.textSecondary },
                   ]}
+                  numberOfLines={1}
                 >
                   {f.label}
                 </Text>
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
 
         <FlatList
           data={itemsFiltrados}
@@ -493,18 +499,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 14,
   },
-  filtrosRow: {
+  filtrosGrid: {
     flexDirection: 'row',
-    gap: 6,
-    paddingVertical: 4,
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  filtroChip: {
+  filtroTile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
   },
-  filtroChipText: {
+  filtroTileText: {
     fontSize: 12,
     fontWeight: '600',
   },
