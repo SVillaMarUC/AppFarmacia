@@ -1,31 +1,164 @@
-import { collection, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '@/services/firebase/config';
+import type { ItemInventario } from '@/types';
 
-// 1. Lista local de respaldo o de carga inicial
-export const medicamentosIniciales = [
-  // ... tus 10 medicamentos aquí
-];
-
-// 2. Funciones del servicio para interactuar con Firebase
-export const medicationService = {
-  async obtenerMedicamentos() {
-    try {
-      const ref = collection(db, 'medicamentos');
-      const snapshot = await getDocs(ref);
-
-      // Si Firebase está vacío, devuelve la lista local
-      if (snapshot.empty) {
-        return medicamentosIniciales;
-      }
-
-      // Si Firebase tiene datos, devuelve los datos reales de la BD
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-    } catch (error) {
-      console.warn('Error en Firebase, usando medicamentos locales:', error);
-      return medicamentosIniciales;
-    }
+export const medicamentosIniciales: Omit<ItemInventario, 'id' | 'creadoEn' | 'actualizadoEn'>[] = [
+  {
+    nombre: 'Acetaminofén 500mg',
+    principioActivo: 'Paracetamol',
+    concentracion: '500 mg',
+    presentacion: 'Tabletas',
+    unidad: 'Caja x 20 tabletas',
+    categoria: 'Analgésicos y antipiréticos',
+    descripcion: 'Alivio del dolor leve a moderado y control de la fiebre.',
+    requiereReceta: false,
+    stock: 50,
+    stockMinimo: 10,
+    lote: 'ACT-2026-A1',
+    fechaVencimiento: '2027-12-31',
+    proveedor: 'Laboratorios Genfar',
+    activo: true,
   },
-};
+  {
+    nombre: 'Ibuprofeno 400mg',
+    principioActivo: 'Ibuprofeno',
+    concentracion: '400 mg',
+    presentacion: 'Cápsulas blandas',
+    unidad: 'Caja x 10 cápsulas',
+    categoria: 'Antiinflamatorios',
+    descripcion: 'Antiinflamatorio no esteroideo (AINE) para inflamación y dolor.',
+    requiereReceta: false,
+    stock: 40,
+    stockMinimo: 8,
+    lote: 'IBU-2026-B4',
+    fechaVencimiento: '2027-08-15',
+    proveedor: 'Laboratorios Lafrancol',
+    activo: true,
+  },
+  {
+    nombre: 'Amoxicilina 500mg',
+    principioActivo: 'Amoxicilina trihidrato',
+    concentracion: '500 mg',
+    presentacion: 'Cápsulas',
+    unidad: 'Caja x 30 cápsulas',
+    categoria: 'Antibióticos',
+    descripcion: 'Antibiótico betalactámico para infecciones bacterianas del tracto respiratorio.',
+    requiereReceta: true,
+    stock: 30,
+    stockMinimo: 5,
+    lote: 'AMX-2026-C2',
+    fechaVencimiento: '2027-06-30',
+    proveedor: 'Laboratorios MK',
+    activo: true,
+  },
+  {
+    nombre: 'Losartán Potásico 50mg',
+    principioActivo: 'Losartán potásico',
+    concentracion: '50 mg',
+    presentacion: 'Tabletas recubiertas',
+    unidad: 'Caja x 30 tabletas',
+    categoria: 'Antihipertensivos',
+    descripcion: 'Tratamiento de la hipertensión arterial esencial.',
+    requiereReceta: true,
+    stock: 45,
+    stockMinimo: 10,
+    lote: 'LOS-2026-D1',
+    fechaVencimiento: '2028-01-20',
+    proveedor: 'Laboratorios Procaps',
+    activo: true,
+  },
+  {
+    nombre: 'Metformina 850mg',
+    principioActivo: 'Metformina clorhidrato',
+    concentracion: '850 mg',
+    presentacion: 'Tabletas',
+    unidad: 'Caja x 30 tabletas',
+    categoria: 'Antidiabéticos',
+    descripcion: 'Antidiabético oral para el control de la glucosa en diabetes tipo 2.',
+    requiereReceta: true,
+    stock: 35,
+    stockMinimo: 8,
+    lote: 'MET-2026-E3',
+    fechaVencimiento: '2027-11-10',
+    proveedor: 'Laboratorios MK',
+    activo: true,
+  },
+  {
+    nombre: 'Omeprazol 20mg',
+    principioActivo: 'Omeprazol',
+    concentracion: '20 mg',
+    presentacion: 'Cápsulas con microgránulos',
+    unidad: 'Caja x 14 cápsulas',
+    categoria: 'Gastroprotectores',
+    descripcion: 'Inhibidor de la bomba de protones para gastritis y reflujo.',
+    requiereReceta: false,
+    stock: 60,
+    stockMinimo: 12,
+    lote: 'OME-2026-F5',
+    fechaVencimiento: '2027-10-05',
+    proveedor: 'Laboratorios Genfar',
+    activo: true,
+  },
+  {
+    nombre: 'Loratadina 10mg',
+    principioActivo: 'Loratadina',
+    concentracion: '10 mg',
+    presentacion: 'Tabletas',
+    unidad: 'Caja x 10 tabletas',
+    categoria: 'Antihistamínicos',
+    descripcion: 'Antihistamínico no sedante para rinitis alérgica y urticaria.',
+    requiereReceta: false,
+    stock: 25,
+    stockMinimo: 5,
+    lote: 'LOR-2026-G7',
+    fechaVencimiento: '2027-09-18',
+    proveedor: 'Laboratorios Lafrancol',
+    activo: true,
+  },
+  {
+    nombre: 'Azitromicina 500mg',
+    principioActivo: 'Azitromicina dihidrato',
+    concentracion: '500 mg',
+    presentacion: 'Tabletas recubiertas',
+    unidad: 'Caja x 3 tabletas',
+    categoria: 'Antibióticos',
+    descripcion: 'Macrólido para infecciones respiratorias, cutáneas y urogenitales.',
+    requiereReceta: true,
+    stock: 20,
+    stockMinimo: 5,
+    lote: 'AZI-2026-H9',
+    fechaVencimiento: '2027-05-12',
+    proveedor: 'Laboratorios Pfizer',
+    activo: true,
+  },
+  {
+    nombre: 'Salbutamol Inhalador 100mcg',
+    principioActivo: 'Salbutamol sulfato',
+    concentracion: '100 mcg / dosis',
+    presentacion: 'Inhalador en aerosol',
+    unidad: 'Frasco x 200 dosis',
+    categoria: 'Broncodilatadores',
+    descripcion: 'Broncodilatador de acción rápida para alivio del broncoespasmo y asma.',
+    requiereReceta: true,
+    stock: 15,
+    stockMinimo: 4,
+    lote: 'SAL-2026-J3',
+    fechaVencimiento: '2027-04-30',
+    proveedor: 'GlaxoSmithKline',
+    activo: true,
+  },
+  {
+    nombre: 'Suero Oral Rehidratante',
+    principioActivo: 'Electrólitos orales',
+    concentracion: 'Fórmula OMS',
+    presentacion: 'Solución líquida',
+    unidad: 'Frasco x 500 ml',
+    categoria: 'Hidratación y electrolitos',
+    descripcion: 'Prevención y tratamiento de la deshidratación por diarrea o vómito.',
+    requiereReceta: false,
+    stock: 30,
+    stockMinimo: 6,
+    lote: 'SRO-2026-K8',
+    fechaVencimiento: '2028-02-28',
+    proveedor: 'Laboratorios Abbott',
+    activo: true,
+  },
+];

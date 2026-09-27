@@ -32,21 +32,21 @@ export type PedidoItem = Medicamento;
 
 export interface Usuario {
   uid: string;
-  cedula: number;
+  cedula: number | string;
   email?: string;
   nombre: string;
-  fechaNacimiento: Date;
-  genero: string;
-  eps: string;
-  ciudad: string;
-  direcciones: Direccion[];
-  telefono: string;
-  contactoEmergencia: ContactoEmergencia;
-  esPrioritario: boolean;
+  fechaNacimiento?: Date | string;
+  genero?: string;
+  eps?: string;
+  ciudad?: string;
+  direcciones?: Direccion[];
+  telefono?: string;
+  contactoEmergencia?: ContactoEmergencia;
+  esPrioritario?: boolean;
   disponible?: boolean;
   tipoPrioridad?: 'adulto_mayor' | 'discapacidad' | 'embarazo';
   rol: 'afiliado' | 'administrador' | 'domiciliario' | 'despachador';
-  creadoEn: Timestamp;
+  creadoEn?: Timestamp;
 }
 
 export type EstadoReceta = 'pendiente' | 'procesando' | 'revision' | 'aprobada' | 'rechazada';
@@ -55,7 +55,9 @@ export interface RecetaOCRItem {
   nombre: string;
   cantidad: number;
   concentracion?: string;
+  presentacion?: string;
   dosis?: string;
+  instrucciones?: string;
 }
 
 export interface RecetaMedica {
@@ -175,4 +177,24 @@ export interface Checkpoint {
   precisionGPS?: number | null;
   observacion?: string;
   domiciliarioId: string;
+}
+
+export type TipoPqrs = 'peticion' | 'queja' | 'reclamo' | 'sugerencia';
+export type EstadoPqrs = 'pendiente' | 'en_revision' | 'resuelto' | 'cerrado';
+
+export interface Pqrs {
+  id: string;
+  usuarioId: string;
+  usuarioNombre?: string;
+  usuarioEmail?: string;
+  pedidoId?: string;
+  tipo: TipoPqrs;
+  asunto: string;
+  descripcion: string;
+  estado: EstadoPqrs;
+  respuesta?: string;
+  respondidoPor?: string;
+  respondidoEn?: Timestamp;
+  creadoEn: Timestamp;
+  actualizadoEn?: Timestamp;
 }

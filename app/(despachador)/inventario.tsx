@@ -3,6 +3,7 @@ import {
   Alert,
   FlatList,
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -61,52 +62,13 @@ export default function InventarioScreen() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [form, setForm] = useState<FormInventario>(initialForm);
   const [guardando, setGuardando] = useState(false);
-  const [cargandoSeeder, setCargandoSeeder] = useState(false);
 
   useEffect(() => {
-    // Escucha de Firestore en tiempo real + Siembra automática
-    const unsub = medicationService.escucharInventario(async (data) => {
-      if (data.length === 0) {
-        try {
-          await medicationService.cargarMedicamentosIniciales();
-        } catch (error) {
-          console.error('Error al realizar siembra automática:', error);
-        }
-      } else {
-        setItems(data);
-      }
+    const unsub = medicationService.escucharInventario((data) => {
+      setItems(data);
     });
     return unsub;
   }, []);
-
-  // Función para poblar o sincronizar manualmente la BD
-  const handleCargarIniciales = async () => {
-    Alert.alert(
-      'Cargar Medicamentos Iniciales',
-      '¿Deseas verificar y registrar la lista inicial de medicamentos en la base de datos?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Continuar',
-          onPress: async () => {
-            try {
-              setCargandoSeeder(true);
-              const nuevos = await medicationService.cargarMedicamentosIniciales();
-              if (nuevos === 0) {
-                Alert.alert('Inventario al día', 'Los medicamentos iniciales ya están registrados en la base de datos.');
-              } else {
-                Alert.alert('Éxito', `Se registraron ${nuevos} medicamentos correctamente.`);
-              }
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo cargar la lista inicial de medicamentos.');
-            } finally {
-              setCargandoSeeder(false);
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const itemsFiltrados = useMemo(() => {
     let filtrados = [...items];
@@ -157,14 +119,14 @@ export default function InventarioScreen() {
     }
 
     setForm({
-      nombre: item.nombre ?? '',
+      nombre: item.nombre,
       principioActivo: item.principioActivo ?? '',
       concentracion: item.concentracion ?? '',
       presentacion: item.presentacion ?? '',
       unidad: item.unidad ?? '',
       requiereReceta: Boolean(item.requiereReceta),
-      stock: String(item.stock ?? 0),
-      stockMinimo: String(item.stockMinimo ?? 5),
+      stock: String(item.stock),
+      stockMinimo: String(item.stockMinimo),
       lote: item.lote ?? '',
       fechaVencimiento: fechaStr,
       activo: item.activo !== false,
@@ -183,34 +145,30 @@ export default function InventarioScreen() {
 
     try {
       setGuardando(true);
-
-      // Usamos null en lugar de undefined para que Firestore acepte los campos opcionales vacíos
-      const payload = {
+      const payload: Partial<ItemInventario> = {
         nombre: form.nombre.trim(),
-        principioActivo: form.principioActivo.trim() || null,
-        concentracion: form.concentracion.trim() || null,
-        presentacion: form.presentacion.trim() || null,
-        unidad: form.unidad.trim() || null,
+        principioActivo: form.principioActivo.trim() || undefined,
+        concentracion: form.concentracion.trim() || undefined,
+        presentacion: form.presentacion.trim() || undefined,
+        unidad: form.unidad.trim() || undefined,
         requiereReceta: form.requiereReceta,
         stock: stockNum,
         stockMinimo: stockMinNum,
-        lote: form.lote.trim() || null,
+        lote: form.lote.trim() || undefined,
         fechaVencimiento: form.fechaVencimiento.trim() || null,
         activo: form.activo,
       };
 
       if (editandoId) {
-      await medicationService.actualizarMedicamento(editandoId, payload as Partial<ItemInventario>);
-      Alert.alert('Actualizado', 'Medicamento actualizado correctamente.');
-    } else {
-      await medicationService.crearMedicamento(payload as Omit<ItemInventario, 'id'>);
-      Alert.alert('Creado', 'Medicamento registrado exitosamente.');
-    }
-
+        await medicationService.actualizarMedicamento(editandoId, payload);
+        Alert.alert('Actualizado', 'Medicamento actualizado correctamente.');
+      } else {
+        await medicationService.crearMedicamento(payload as Omit<ItemInventario, 'id'>);
+        Alert.alert('Creado', 'Medicamento registrado exitosamente.');
+      }
       setModalVisible(false);
       setForm(initialForm);
     } catch (error) {
-      console.error('Error al guardar medicamento:', error);
       Alert.alert('Error', 'No fue posible guardar el medicamento.');
     } finally {
       setGuardando(false);
@@ -233,21 +191,6 @@ export default function InventarioScreen() {
           title="Inventario de Medicamentos"
           subtitle="Administra el catálogo, stock, lotes, fechas de vencimiento y requerimiento de receta."
         />
-
-        {/* Botón de carga e inserción inicial */}
-        <TouchableOpacity
-          style={[
-            styles.seederBtn,
-            { backgroundColor: theme.colors.surfaceSecondary, borderColor: theme.colors.border },
-          ]}
-          onPress={handleCargarIniciales}
-          disabled={cargandoSeeder}
-        >
-          <Ionicons name="cloud-upload-outline" size={16} color={theme.colors.primary} />
-          <Text style={[styles.seederBtnText, { color: theme.colors.primary }]}>
-            {cargandoSeeder ? 'Sincronizando...' : 'Cargar / Sincronizar Medicamentos Iniciales'}
-          </Text>
-        </TouchableOpacity>
 
         <View style={styles.topActions}>
           <TextInput
@@ -536,20 +479,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     gap: 12,
-  },
-  seederBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  seederBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   topActions: {
     flexDirection: 'row',

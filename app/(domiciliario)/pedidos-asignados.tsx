@@ -1,49 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import {
-  collection,
-  doc,
-  limit,
-  onSnapshot,
-  query,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
-
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { collection, doc, limit, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-
 import { useTheme } from '@/context/ThemeContext';
-import { usePedido } from '@/context/PedidoContext';
-
 import { useAuth } from '@/hooks/useAuth';
-
 import { db } from '@/services/firebase/config';
-
 import type { Pedido } from '@/types';
 
 export default function PedidosAsignadosScreen() {
   const { perfil } = useAuth();
-  const { setPedidoActivo } = usePedido();
   const { theme } = useTheme();
-
   const [disponible, setDisponible] = useState<boolean>(true);
-  const [actualizandoDisponibilidad, setActualizandoDisponibilidad] =
-    useState(false);
-
-  const [pedidoActivoLocal, setPedidoActivoLocal] =
-    useState<Pedido | null>(null);
-
+  const [actualizandoDisponibilidad, setActualizandoDisponibilidad] = useState(false);
+  const [pedidoActivo, setPedidoActivo] = useState<Pedido | null>(null);
   const [pedidosAsignados, setPedidosAsignados] = useState<Pedido[]>([]);
   const [expandidoId, setExpandidoId] = useState<string | null>(null);
 
@@ -53,10 +25,8 @@ export default function PedidosAsignadosScreen() {
     }
 
     const usuarioRef = doc(db, 'usuarios', perfil.uid);
-
     const unsubUsuario = onSnapshot(usuarioRef, (snapshot) => {
       const data = snapshot.data();
-
       setDisponible(Boolean(data?.disponible));
     });
 
@@ -75,167 +45,84 @@ export default function PedidosAsignadosScreen() {
 
     const unsubActivo = onSnapshot(qActivo, (snapshot) => {
       const docItem = snapshot.docs[0];
-
-      const pedido = docItem
-        ? ({
-            id: docItem.id,
-            ...(docItem.data() as Omit<Pedido, 'id'>),
-          } as Pedido)
-        : null;
-
-      // Estado local para esta pantalla
-      setPedidoActivoLocal(pedido);
-
-      // Estado global para otras pantallas,
-      // especialmente navegacion.tsx
-      setPedidoActivo(pedido);
+      setPedidoActivo(docItem ? ({ id: docItem.id, ...(docItem.data() as Omit<Pedido, 'id'>) } as Pedido) : null);
     });
 
     const unsubPendientes = onSnapshot(qPendientes, (snapshot) => {
-      const pedidos = snapshot.docs.map(
-        (docItem) =>
-          ({
-            id: docItem.id,
-            ...(docItem.data() as Omit<Pedido, 'id'>),
-          } as Pedido)
-      );
-
-      setPedidosAsignados(pedidos);
+      setPedidosAsignados(snapshot.docs.map((docItem) => ({ id: docItem.id, ...(docItem.data() as Omit<Pedido, 'id'>) } as Pedido)));
     });
 
     return () => {
       unsubUsuario();
       unsubActivo();
       unsubPendientes();
-
-      // Cuando se desmonta la pantalla,
-      // no eliminamos el pedido activo del contexto.
-      // Así navegación puede seguir utilizándolo.
     };
-  }, [perfil?.uid, setPedidoActivo]);
+  }, [perfil?.uid]);
 
   const toggleDisponibilidad = async () => {
     if (!perfil?.uid) {
       return;
     }
-
     try {
       setActualizandoDisponibilidad(true);
-
       const nuevoEstado = !disponible;
-
-      await updateDoc(doc(db, 'usuarios', perfil.uid), {
-        disponible: nuevoEstado,
-      });
-
+      await updateDoc(doc(db, 'usuarios', perfil.uid), { disponible: nuevoEstado });
       setDisponible(nuevoEstado);
     } catch (error) {
-      Alert.alert(
-        'Error',
-        'No fue posible actualizar tu disponibilidad.'
-      );
+      Alert.alert('Error', 'No fue posible actualizar tu disponibilidad.');
     } finally {
       setActualizandoDisponibilidad(false);
     }
   };
 
   const marcarEntregado = async () => {
-    if (!pedidoActivoLocal?.id) {
+    if (!pedidoActivo?.id) {
       return;
     }
 
-    Alert.alert(
-      'Confirmar entrega',
-      '¿Deseas marcar este pedido como entregado?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
+    Alert.alert('Confirmar entrega', '¿Deseas marcar este pedido como entregado?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Confirmar',
+        onPress: async () => {
+          try {
+            await updateDoc(doc(db, 'pedidos', pedidoActivo.id), { estado: 'entregado' });
+            Alert.alert('Éxito', 'Pedido marcado como entregado.');
+          } catch (error) {
+            Alert.alert('Error', 'No fue posible actualizar el pedido.');
+          }
         },
-        {
-          text: 'Confirmar',
-          onPress: async () => {
-            try {
-              await updateDoc(
-                doc(db, 'pedidos', pedidoActivoLocal.id),
-                {
-                  estado: 'entregado',
-                }
-              );
-
-              Alert.alert(
-                'Éxito',
-                'Pedido marcado como entregado.'
-              );
-            } catch (error) {
-              Alert.alert(
-                'Error',
-                'No fue posible actualizar el pedido.'
-              );
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   const tiempoEsperando = (pedido: Pedido) => {
     const raw = pedido.timestampCreacion;
-
-    if (
-      !raw ||
-      typeof raw !== 'object' ||
-      !('toDate' in raw)
-    ) {
+    if (!raw || typeof raw !== 'object' || !('toDate' in raw)) {
       return 'Sin fecha';
     }
-
-    const min = Math.max(
-      1,
-      Math.round(
-        (Date.now() - raw.toDate().getTime()) / 60000
-      )
-    );
-
-    if (min < 60) {
-      return `${min} min`;
-    }
-
+    const min = Math.max(1, Math.round((Date.now() - raw.toDate().getTime()) / 60000));
+    if (min < 60) return `${min} min`;
     return `${Math.round(min / 60)} h`;
   };
 
   const totalActivos = useMemo(
-    () =>
-      [pedidoActivoLocal, ...pedidosAsignados].filter(
-        (item): item is Pedido => Boolean(item)
-      ).length,
-    [pedidoActivoLocal, pedidosAsignados]
+    () => [pedidoActivo, ...pedidosAsignados].filter((item): item is Pedido => Boolean(item)).length,
+    [pedidoActivo, pedidosAsignados]
   );
 
   return (
     <Screen>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <ScreenHeader
           kicker="Módulo Domiciliario"
           title="Pedidos Asignados"
           subtitle="Monitorea tus entregas en curso, transmite tu ubicación y reporta el estado en tiempo real."
         />
 
-        {/* DISPONIBILIDAD */}
         <Card>
           <View style={styles.estadoRow}>
-            <Text
-              style={[
-                styles.estadoLabel,
-                { color: theme.colors.text },
-              ]}
-            >
-              Estado:
-            </Text>
-
+            <Text style={[styles.estadoLabel, { color: theme.colors.text }]}>Estado:</Text>
             <Pressable
               onPress={toggleDisponibilidad}
               style={[
@@ -248,118 +135,54 @@ export default function PedidosAsignadosScreen() {
               ]}
             >
               {actualizandoDisponibilidad ? (
-                <ActivityIndicator
-                  color={theme.colors.primary}
-                  size="small"
-                />
+                <ActivityIndicator color={theme.colors.primary} size="small" />
               ) : (
                 <Text
                   style={[
                     styles.estadoTexto,
                     {
-                      color: disponible
-                        ? theme.colors.primary
-                        : theme.colors.textMuted,
+                      color: disponible ? theme.colors.primary : theme.colors.textMuted,
                     },
                   ]}
                 >
-                  {disponible
-                    ? 'Disponible'
-                    : 'No disponible'}
+                  {disponible ? 'Disponible' : 'No disponible'}
                 </Text>
               )}
             </Pressable>
           </View>
-
-          <Text
-            style={[
-              styles.info,
-              { color: theme.colors.textSecondary },
-            ]}
-          >
+          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
             Pedidos activos: {totalActivos}
           </Text>
         </Card>
 
-        {/* PEDIDO ACTIVO */}
-        {pedidoActivoLocal ? (
+        {pedidoActivo ? (
           <Card>
             <View style={styles.section}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: theme.colors.text },
-                ]}
-              >
-                Entrega activa
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Entrega activa</Text>
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                Paciente: {pedidoActivo.usuarioId}
               </Text>
-
-              <Text
-                style={[
-                  styles.info,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Paciente: {pedidoActivoLocal.usuarioId}
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                Dirección: {pedidoActivo.direccionEntrega?.direccion ?? 'Sin dirección'}
               </Text>
-
-              <Text
-                style={[
-                  styles.info,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Dirección:{' '}
-                {pedidoActivoLocal.direccionEntrega?.direccion ??
-                  'Sin dirección'}
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                Medicamentos: {pedidoActivo.medicamentos.map((m) => m.nombre).join(', ')}
               </Text>
-
-              <Text
-                style={[
-                  styles.info,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Medicamentos:{' '}
-                {pedidoActivoLocal.medicamentos
-                  .map((m) => m.nombre)
-                  .join(', ')}
-              </Text>
-
-              <Button
-                texto="Marcar como entregado"
-                onPress={marcarEntregado}
-              />
+              <Button texto="Marcar como entregado" onPress={marcarEntregado} />
             </View>
           </Card>
         ) : null}
 
-        {/* PEDIDOS ASIGNADOS */}
         <Card>
           <View style={styles.section}>
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: theme.colors.text },
-              ]}
-            >
-              Pedidos asignados
-            </Text>
-
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Pedidos asignados</Text>
             {!pedidosAsignados.length ? (
-              <Text
-                style={[
-                  styles.info,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
+              <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
                 No tienes pedidos asignados en este momento.
               </Text>
             ) : null}
-
             {pedidosAsignados.map((pedido) => {
               const expandido = expandidoId === pedido.id;
-
               return (
                 <Pressable
                   key={pedido.id}
@@ -367,82 +190,31 @@ export default function PedidosAsignadosScreen() {
                     styles.rowPedido,
                     {
                       borderColor: theme.colors.border,
-                      backgroundColor:
-                        theme.colors.surfaceSecondary,
+                      backgroundColor: theme.colors.surfaceSecondary,
                     },
                   ]}
-                  onPress={() =>
-                    setExpandidoId((prev) =>
-                      prev === pedido.id
-                        ? null
-                        : pedido.id
-                    )
-                  }
+                  onPress={() => setExpandidoId((prev) => (prev === pedido.id ? null : pedido.id))}
                 >
-                  <Text
-                    style={[
-                      styles.rowMain,
-                      { color: theme.colors.text },
-                    ]}
-                  >
-                    {pedido.direccionEntrega?.direccion ??
-                      'Sin dirección'}
+                  <Text style={[styles.rowMain, { color: theme.colors.text }]}>
+                    {pedido.direccionEntrega?.direccion ?? 'Sin dirección'}
                   </Text>
-
-                  <Text
-                    style={[
-                      styles.info,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    Medicamentos:{' '}
-                    {pedido.medicamentos
-                      .map((m) => m.nombre)
-                      .join(', ')}
+                  <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                    Medicamentos: {pedido.medicamentos.map((m) => m.nombre).join(', ')}
                   </Text>
-
-                  <Text
-                    style={[
-                      styles.info,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    Tiempo esperando:{' '}
-                    {tiempoEsperando(pedido)}
+                  <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                    Tiempo esperando: {tiempoEsperando(pedido)}
                   </Text>
-
                   {expandido ? (
                     <View
                       style={[
                         styles.detalleExpandido,
-                        {
-                          borderTopColor:
-                            theme.colors.borderLight,
-                        },
+                        { borderTopColor: theme.colors.borderLight },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.info,
-                          {
-                            color:
-                              theme.colors.textSecondary,
-                          },
-                        ]}
-                      >
-                        Modo de entrega:{' '}
-                        {pedido.modoEntrega}
+                      <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+                        Modo de entrega: {pedido.modoEntrega}
                       </Text>
-
-                      <Text
-                        style={[
-                          styles.info,
-                          {
-                            color:
-                              theme.colors.textSecondary,
-                          },
-                        ]}
-                      >
+                      <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
                         Estado: {pedido.estado}
                       </Text>
                     </View>
@@ -458,26 +230,10 @@ export default function PedidosAsignadosScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  content: {
-    padding: 16,
-    gap: 12,
-  },
-
-  estadoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
-  estadoLabel: {
-    fontWeight: '700',
-    fontSize: 14,
-  },
-
+  container: { flex: 1 },
+  content: { padding: 16, gap: 12 },
+  estadoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  estadoLabel: { fontWeight: '700', fontSize: 14 },
   estadoPill: {
     borderRadius: 999,
     paddingHorizontal: 12,
@@ -485,42 +241,12 @@ const styles = StyleSheet.create({
     minWidth: 122,
     alignItems: 'center',
   },
-
-  estadoTexto: {
-    fontWeight: '700',
-    fontSize: 14,
-  },
-
-  section: {
-    gap: 8,
-  },
-
-  sectionTitle: {
-    fontWeight: '700',
-    fontSize: 16,
-  },
-
-  info: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
-  rowPedido: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 10,
-    gap: 4,
-  },
-
-  rowMain: {
-    fontWeight: '700',
-    fontSize: 14,
-  },
-
-  detalleExpandido: {
-    marginTop: 4,
-    borderTopWidth: 1,
-    paddingTop: 6,
-    gap: 2,
-  },
+  estadoTexto: { fontWeight: '700', fontSize: 14 },
+  section: { gap: 8 },
+  sectionTitle: { fontWeight: '700', fontSize: 16 },
+  info: { fontSize: 14, lineHeight: 20 },
+  rowPedido: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 4 },
+  rowMain: { fontWeight: '700', fontSize: 14 },
+  detalleExpandido: { marginTop: 4, borderTopWidth: 1, paddingTop: 6, gap: 2 },
 });
+

@@ -19,31 +19,24 @@ import { medicamentosIniciales } from '@/constants/medicamentos';
 export const DIAS_ALERTA_PROXIMO_VENCIMIENTO = 30;
 
 export const medicationService = {
+  /**
+   * Escucha en tiempo real la lista completa de medicamentos/inventario
+   */
   escucharInventario(callback: (items: ItemInventario[]) => void): () => void {
     const ref = collection(db, 'inventario');
     return onSnapshot(
       ref,
       (snapshot) => {
-        const items = snapshot.docs.map((d) => {
-          const data = d.data() as Record<string, unknown>;
+        const items = snapshot.docs.map((docItem) => {
+          const data = docItem.data();
           return {
-            id: d.id,
-            nombre: String(data.nombre ?? ''),
-            principioActivo: data.principioActivo ? String(data.principioActivo) : undefined,
-            concentracion: data.concentracion ? String(data.concentracion) : undefined,
-            presentacion: data.presentacion ? String(data.presentacion) : undefined,
-            unidad: data.unidad ? String(data.unidad) : undefined,
-            categoria: data.categoria ? String(data.categoria) : 'General',
-            descripcion: data.descripcion ? String(data.descripcion) : undefined,
-            requiereReceta: Boolean(data.requiereReceta),
+            id: docItem.id,
+            ...data,
+            nombre: data.nombre || '',
             stock: Number(data.stock ?? data.cantidad ?? 0),
             stockMinimo: Number(data.stockMinimo ?? 5),
-            lote: data.lote ? String(data.lote) : undefined,
-            fechaVencimiento: data.fechaVencimiento as Timestamp | Date | string | undefined,
-            proveedor: data.proveedor ? String(data.proveedor) : undefined,
-            activo: data.activo !== false, // Por defecto true
-            creadoEn: data.creadoEn as Timestamp | undefined,
-            actualizadoEn: data.actualizadoEn as Timestamp | undefined,
+            activo: data.activo !== false,
+            requiereReceta: Boolean(data.requiereReceta),
           } as ItemInventario;
         });
         callback(items);
@@ -52,6 +45,30 @@ export const medicationService = {
         console.error('[MedicationService] Error al escuchar inventario:', error);
       }
     );
+  },
+
+  /**
+   * Obtiene la lista completa de inventario una sola vez
+   */
+  async obtenerInventario(): Promise<ItemInventario[]> {
+    try {
+      const snap = await getDocs(collection(db, 'inventario'));
+      return snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          nombre: data.nombre || '',
+          stock: Number(data.stock ?? data.cantidad ?? 0),
+          stockMinimo: Number(data.stockMinimo ?? 5),
+          activo: data.activo !== false,
+          requiereReceta: Boolean(data.requiereReceta),
+        } as ItemInventario;
+      });
+    } catch (error) {
+      console.error('[MedicationService] Error al obtener inventario:', error);
+      throw new Error('No fue posible obtener el inventario de medicamentos.');
+    }
   },
 
   /**
@@ -65,80 +82,54 @@ export const medicationService = {
 
       // Si el inventario en Firestore está vacío, se siembran automáticamente los medicamentos iniciales
       if (snap.empty) {
-        console.log('[MedicationService] Inventario vacío. Cargando medicamentos iniciales automáticamente...');
-        await medicationService.cargarMedicamentosIniciales();
-        snap = await getDocs(q); // Volver a consultar tras insertar
+        console.log('[MedicationService] Inventario vacío. Sembrando catálogo inicial automáticamente...');
+        await this.cargarMedicamentosIniciales();
+        snap = await getDocs(q);
       }
 
       return snap.docs.map((d) => {
         const data = d.data();
         return {
           id: d.id,
-          nombre: String(data.nombre ?? ''),
-          principioActivo: data.principioActivo,
-          concentracion: data.concentracion,
-          presentacion: data.presentacion,
-          unidad: data.unidad,
-          categoria: data.categoria ?? 'General',
-          descripcion: data.descripcion,
+          ...data,
+          nombre: data.nombre || '',
+          principioActivo: data.principioActivo || '',
+          concentracion: data.concentracion || '',
+          presentacion: data.presentacion || '',
+          unidad: data.unidad || '',
+          categoria: data.categoria || 'General',
+          descripcion: data.descripcion || '',
           requiereReceta: Boolean(data.requiereReceta),
           stock: Number(data.stock ?? data.cantidad ?? 0),
           stockMinimo: Number(data.stockMinimo ?? 5),
-          lote: data.lote,
-          fechaVencimiento: data.fechaVencimiento,
+          lote: data.lote || '',
+          fechaVencimiento: data.fechaVencimiento || null,
           activo: true,
         } as ItemInventario;
       });
     } catch (error) {
       console.error('[MedicationService] obtenerCatalogoAfiliado error:', error);
-      
-      // Fallback local en caso de error de conexión a Firestore
-      return medicamentosIniciales.map((m, index) => {
-        const med = m as Partial<ItemInventario>;
-        return {
-          id: String(index + 1),
-          ...med,
-          nombre: med.nombre || '',
-          stock: med.stock ?? 20,
-          stockMinimo: med.stockMinimo ?? 5,
-          activo: true,
-        } as ItemInventario;
-      });
-    }
-  },
-
-  /**
-   * Crea un nuevo medicamento en inventario
-   */
-  async crearMedicamento(data: Omit<ItemInventario, 'id' | 'creadoEn' | 'actualizadoEn'>): Promise<string> {
-    try {
-      const ref = await addDoc(collection(db, 'inventario'), {
-        ...data,
-        stock: Math.max(0, Number(data.stock || 0)),
-        stockMinimo: Math.max(0, Number(data.stockMinimo || 0)),
-        activo: data.activo !== false,
-        creadoEn: serverTimestamp(),
-        actualizadoEn: serverTimestamp(),
-      });
-      return ref.id;
-    } catch (error) {
-      console.error('[MedicationService] crearMedicamento error:', error);
-      throw new Error('No fue posible registrar el medicamento.');
+      // Fallback local en caso de desconexión
+      return medicamentosIniciales.map((m, index) => ({
+        id: `local-${index + 1}`,
+        ...m,
+        stock: m.stock ?? 20,
+        stockMinimo: m.stockMinimo ?? 5,
+        activo: true,
+      })) as ItemInventario[];
     }
   },
 
   /**
    * Carga los medicamentos iniciales en Firestore.
-   * Si un medicamento ya existe por nombre, no lo vuelve a registrar.
-   * Retorna la cantidad de medicamentos nuevos agregados.
+   * Si un medicamento ya existe por nombre, no lo duplica.
    */
   async cargarMedicamentosIniciales(): Promise<number> {
     try {
       let cantidadAgregada = 0;
 
       for (const item of medicamentosIniciales) {
-        const med = item as Partial<ItemInventario>;
-        const nombreMed = med.nombre || '';
+        const nombreMed = item.nombre || '';
 
         const q = query(
           collection(db, 'inventario'),
@@ -151,12 +142,12 @@ export const medicationService = {
           continue;
         }
 
-        // Crear medicamento nuevo con respaldo de tipos explícito
         await addDoc(collection(db, 'inventario'), {
-          ...med,
-          stock: Math.max(0, Number(med.stock ?? 0)),
-          stockMinimo: Math.max(0, Number(med.stockMinimo ?? 5)),
-          activo: med.activo !== false,
+          ...item,
+          stock: Math.max(0, Number(item.stock ?? 0)),
+          stockMinimo: Math.max(0, Number(item.stockMinimo ?? 5)),
+          activo: item.activo !== false,
+          requiereReceta: Boolean(item.requiereReceta),
           creadoEn: serverTimestamp(),
           actualizadoEn: serverTimestamp(),
         });
@@ -166,49 +157,69 @@ export const medicationService = {
 
       return cantidadAgregada;
     } catch (error) {
-      console.error(
-        '[MedicationService] cargarMedicamentosIniciales error:',
-        error
-      );
+      console.error('[MedicationService] cargarMedicamentosIniciales error:', error);
+      throw new Error('No fue posible cargar los medicamentos iniciales.');
+    }
+  },
 
-      throw new Error(
-        'No fue posible cargar los medicamentos iniciales.'
-      );
+  /**
+   * Crea un nuevo medicamento en el inventario
+   */
+  async crearMedicamento(item: Omit<ItemInventario, 'id' | 'creadoEn' | 'actualizadoEn'>): Promise<string> {
+    try {
+      const docRef = await addDoc(collection(db, 'inventario'), {
+        ...item,
+        stock: Math.max(0, Number(item.stock || 0)),
+        stockMinimo: Math.max(0, Number(item.stockMinimo || 5)),
+        activo: item.activo !== false,
+        requiereReceta: Boolean(item.requiereReceta),
+        creadoEn: serverTimestamp(),
+        actualizadoEn: serverTimestamp(),
+      });
+      return docRef.id;
+    } catch (error) {
+      console.error('[MedicationService] Error al crear medicamento:', error);
+      throw new Error('No fue posible registrar el medicamento.');
     }
   },
 
   /**
    * Actualiza los datos de un medicamento
    */
-  async actualizarMedicamento(id: string, data: Partial<ItemInventario>): Promise<void> {
+  async actualizarMedicamento(id: string, cambios: Partial<ItemInventario>): Promise<void> {
     try {
-      const payload: Record<string, unknown> = {
-        ...data,
+      const ref = doc(db, 'inventario', id);
+      const updateData: Record<string, unknown> = {
+        ...cambios,
         actualizadoEn: serverTimestamp(),
       };
-      if (data.stock !== undefined) {
-        payload.stock = Math.max(0, Number(data.stock));
+      if (cambios.stock !== undefined) {
+        updateData.stock = Math.max(0, Number(cambios.stock));
+        updateData.cantidad = updateData.stock;
       }
-      if (data.stockMinimo !== undefined) {
-        payload.stockMinimo = Math.max(0, Number(data.stockMinimo));
+      if (cambios.stockMinimo !== undefined) {
+        updateData.stockMinimo = Math.max(0, Number(cambios.stockMinimo));
       }
-      await updateDoc(doc(db, 'inventario', id), payload);
+      delete updateData.id;
+      delete updateData.creadoEn;
+
+      await updateDoc(ref, updateData);
     } catch (error) {
-      console.error('[MedicationService] actualizarMedicamento error:', error);
-      throw new Error('No fue posible actualizar el medicamento.');
+      console.error('[MedicationService] Error al actualizar medicamento:', error);
+      throw new Error('No fue posible actualizar los datos del medicamento.');
     }
   },
 
   /**
-   * Cambia el estado activo / inactivo de un medicamento
+   * Cambia el estado activo / inactivo de un medicamento (eliminación lógica)
    */
   async toggleActivo(id: string, activoActual: boolean): Promise<void> {
-    return medicationService.actualizarMedicamento(id, { activo: !activoActual });
+    return this.actualizarMedicamento(id, { activo: !activoActual });
   },
 
   /**
    * Descuenta stock de múltiples medicamentos de forma ATÓMICA usando transacciones de Firestore
-   * para prevenir stock negativo y condiciones de carrera.
+   * para prevenir existencias negativas y condiciones de carrera.
    */
   async descontarStockAtomico(items: Array<{ medicamentoId: string; cantidad: number; nombre?: string }>): Promise<void> {
     await runTransaction(db, async (transaction) => {
@@ -242,7 +253,7 @@ export const medicationService = {
         const nuevoStock = stockActual - item.cantidad;
         transaction.update(itemRef, {
           stock: nuevoStock,
-          cantidad: nuevoStock, // Compatibilidad con campos legacy
+          cantidad: nuevoStock,
           actualizadoEn: serverTimestamp(),
         });
       }

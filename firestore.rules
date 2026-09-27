@@ -3,70 +3,115 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ================================
-    // USUARIOS
-    // ================================
-    match /usuarios/{uid} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == uid;
+    function autenticado() {
+      return request.auth != null;
     }
 
-    // ================================
-    // PEDIDOS
-    // ================================
+    function esAdmin() {
+      return autenticado() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'administrador';
+    }
+
+    function esDespachador() {
+      return autenticado() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'despachador';
+    }
+
+    function esDomiciliario() {
+      return autenticado() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'domiciliario';
+    }
+
+    function esAfiliado() {
+      return autenticado() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'afiliado';
+    }
+
+    // =========================================================
+    // USUARIOS
+    // =========================================================
+    match /usuarios/{uid} {
+      allow read: if autenticado();
+      allow create: if autenticado() && request.auth.uid == uid;
+      allow update: if autenticado() && (request.auth.uid == uid || esAdmin() || esDespachador());
+      allow delete: if esAdmin();
+    }
+
+    // =========================================================
+    // ÍNDICE DE ACCESOS POR CÉDULA
+    // =========================================================
+    match /accesosCedula/{cedula} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if autenticado();
+      allow update, delete: if autenticado() && (
+        resource.data.uid == request.auth.uid ||
+        esAdmin()
+      );
+    }
+
+    // =========================================================
+    // PEDIDOS & CHECKPOINTS
+    // =========================================================
     match /pedidos/{pedidoId} {
+      allow read: if autenticado();
+      allow create: if autenticado();
+      allow update: if autenticado();
+      allow delete: if esAdmin();
 
-      // Usuario autenticado puede consultar pedidos
-      allow read: if request.auth != null;
-
-      // Crear pedidos
-      allow create: if request.auth != null;
-
-      // Actualizar pedidos
-      allow update: if request.auth != null;
-
-      // Eliminar pedidos
-      allow delete: if request.auth != null;
-
-      // ================================
-      // CHECKPOINTS DEL PEDIDO
-      // ================================
       match /checkpoints/{checkpointId} {
-
-        // Consultar checkpoints
-        allow read: if request.auth != null;
-
-        // Registrar o actualizar checkpoint
-        allow create, update: if request.auth != null
-          && request.resource.data.domiciliarioId == request.auth.uid;
-
-        // No permitimos eliminar checkpoints
+        allow read: if autenticado();
+        allow create, update: if autenticado();
         allow delete: if false;
       }
     }
 
-    // ================================
+    // =========================================================
+    // RECETAS MÉDICAS
+    // =========================================================
+    match /recetas/{recetaId} {
+      allow read: if autenticado();
+      allow create: if autenticado();
+      allow update: if autenticado();
+      allow delete: if esAdmin();
+    }
+
+    // =========================================================
+    // INVENTARIO / CATÁLOGO
+    // =========================================================
+    match /inventario/{itemId} {
+      allow read: if autenticado();
+      allow write: if autenticado();
+    }
+
+    // =========================================================
     // UBICACIONES DE DOMICILIARIOS
-    // ================================
+    // =========================================================
     match /ubicacionesDomiciliarios/{uid} {
-
-      // Consultar ubicación
-      allow read: if request.auth != null;
-
-      // Un domiciliario solamente puede
-      // actualizar su propia ubicación
-      allow create, update: if request.auth != null
-        && request.auth.uid == uid;
-
-      // No eliminar historial/ubicación
+      allow read: if autenticado();
+      allow create, update: if autenticado() && request.auth.uid == uid;
       allow delete: if false;
     }
 
-    // ================================
-    // INVENTARIO
-    // ================================
-    match /inventario/{itemId} {
-      allow read, write: if request.auth != null;
+    // =========================================================
+    // REPORTES Y AUDITORÍA
+    // =========================================================
+    match /reportes/{reporteId} {
+      allow read, write: if autenticado();
+    }
+
+    // =========================================================
+    // PQRS
+    // =========================================================
+    match /pqrs/{pqrsId} {
+      allow create: if autenticado();
+      allow read: if autenticado();
+      allow update: if autenticado();
+      allow delete: if esAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -1,45 +1,53 @@
 # Farma Ya (AppFarmacia)
 
-Aplicación móvil multiplataforma desarrollada en **React Native / Expo SDK 57** para la gestión y automatización integral del despacho y entrega de medicamentos de una farmacia, conectando a **Afiliados**, **Despachadores**, **Domiciliarios** y **Administradores** en tiempo real.
-
-> 📖 **Para nuevos colaboradores**: Consulta la [Guía Completa de Configuración y Solución de Problemas (SETUP.md)](SETUP.md) para resolver temas de Expo Go, redes Wi-Fi, firewall o ejecutar la versión Web.
+Aplicación móvil multiplataforma desarrollada en **React Native / Expo SDK 57 / TypeScript** para la gestión y automatización integral del ciclo de consulta, solicitud, validación médica, preparación, despacho y entrega de medicamentos de una farmacia, conectando a **Afiliados**, **Despachadores**, **Domiciliarios** y **Administradores** en tiempo real.
 
 ---
 
-## Requisitos Previos
+## 1. Arquitectura y Soluciones Implementadas
 
-- **Node.js**: 22.x LTS (compatible con 20.x y 24.x)
+- **Autenticación y Persistencia:** Firebase Auth con soporte de acceso mediante Cédula o Correo electrónico y almacenamiento seguro de token de sesión.
+- **Base de Datos NoSQL en Tiempo Real:** Cloud Firestore con listeners activos (`onSnapshot`) para pedidos, inventario, fórmulas médicas, checkpoints de entrega y PQRS.
+- **Almacenamiento Seguro Desacoplado (Object Storage):** Supabase Storage para recetas médicas con URLs firmadas privadas temporales (cero Base64 en base de datos) y `FallbackStorageProvider` para desarrollo offline.
+- **OCR Gratuito & Reconocimiento Heurístico de Recetas:** Motor de extracción local y gratuito que estructura medicamentos, concentraciones y dosis a partir de imágenes de recetas médicas sin dependencia de APIs de pago como Google Vision.
+- **Mapas y Geolocalización Libres (OpenStreetMap):** Visualización de mapas interactivos y rastreo de domiciliarios mediante OpenStreetMap y `expo-location`, con costo cero y sin dependencia de Google Maps API.
+- **Transacciones Atómicas de Stock:** Deducción y restauración de existencias de inventario mediante `runTransaction` de Firestore, previniendo stock negativo y condiciones de carrera en despachos concurrentes.
+
+---
+
+## 2. Requisitos Previos
+
+- **Node.js**: 20.x, 22.x LTS o 24.x
 - **npm**: 10.x o superior
 - **Expo SDK**: 57
-- **Dispositivo de prueba**: Emulador Android/iOS o app **Expo Go** en tu smartphone.
-- **Cuentas de Servicio**:
+- **Dispositivo de prueba**: Emulador Android/iOS o app **Expo Go** en smartphone / Navegador Web.
+- **Cuentas de Servicio Gratuitas**:
   - Proyecto de **Firebase** (Auth + Cloud Firestore).
-  - Proyecto de **Supabase** (Storage para recetas médicas).
+  - Proyecto de **Supabase** (Bucket de Storage `recetas-medicas`).
 
 ---
 
-## Configuración Inicial del Proyecto (Paso a Paso)
+## 3. Configuración Inicial del Proyecto
 
-### 1. Clonar e Instalar Dependencias
+### 3.1. Clonar e Instalar Dependencias
 ```bash
 git clone <url-del-repositorio>
 cd AppFarmacia
 npm install
 ```
 
-### 2. Configurar Variables de Entorno (`.env`)
+### 3.2. Configurar Variables de Entorno (`.env`)
 Copia el archivo de ejemplo:
 ```bash
 cp .env.example .env
 ```
-Abre `.env` y completa las variables con tus credenciales:
-
+Edita `.env` con tus credenciales de Firebase y Supabase:
 ```env
 # --- FIREBASE (Autenticación y Base de Datos) ---
 EXPO_PUBLIC_FIREBASE_API_KEY=tu_firebase_api_key
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=tu_proyecto_id
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=tu_proyecto.appspot.com
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=tu_proyecto.firebasestorage.app
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=tu_sender_id
 EXPO_PUBLIC_FIREBASE_APP_ID=tu_app_id
 
@@ -48,83 +56,60 @@ EXPO_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key
 EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET=recetas-medicas
 EXPO_PUBLIC_DISABLE_STORAGE_UPLOADS=false
-
-# --- GOOGLE SERVICES (Mapas & OCR) ---
-EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=tu_maps_key
-EXPO_PUBLIC_GOOGLE_VISION_API_KEY=tu_vision_key
-EXPO_PUBLIC_DISABLE_GOOGLE_VISION=false
 ```
 
-> **Nota para desarrollo sin credenciales Cloud:** Si aún no has creado los proyectos en Firebase o Supabase, la app cuenta con un `FallbackStorageProvider` y modo degradado para que puedas navegar por las pantallas y probar la interfaz sin bloqueos.
-
-### 3. Configurar el Bucket en Supabase Storage
+### 3.3. Configurar el Bucket en Supabase Storage
 1. Ingresa a tu panel de [Supabase](https://supabase.com/dashboard).
-2. Ve a la sección **Storage** -> **Create a new bucket**.
-3. Nómbralo `recetas-medicas`.
-4. Configúralo como bucket **Privado** (las recetas se visualizarán de forma segura mediante Signed URLs temporales generadas por la app).
+2. Ve a **Storage** -> **New Bucket** -> Nómbralo `recetas-medicas`.
+3. Configúralo como bucket **Privado** (las imágenes se visualizan con URLs firmadas temporales).
 
-### 4. Desplegar Reglas de Seguridad en Firestore
-Copia las reglas de `firestore.rules` en la consola de Firebase en **Firestore Database -> Reglas -> Publicar**.
+### 3.4. Reglas de Seguridad de Firestore
+Publica el contenido de [firestore.rules](file:///c:/Users/santi/OneDrive/Desktop/AppFarmacia/firestore.rules) en tu consola de Firebase (**Firestore Database -> Reglas -> Publicar**).
 
 ---
 
-## Cómo Poner en Marcha y Probar la Aplicación
+## 4. Cómo Iniciar y Probar la Aplicación
 
-### Paso 1: Iniciar el Servidor de Desarrollo
+### 4.1. Iniciar el Servidor Expo
 ```bash
-npm run start
+npm start
 ```
-- Presiona `a` para abrir en emulador de Android.
-- Presiona `i` para abrir en simulador de iOS.
-- O escanea el código QR con la app **Expo Go** desde tu teléfono.
+- Presiona `a` para Android Emulator.
+- Presiona `i` para iOS Simulator.
+- Presiona `w` para versión Web en el navegador.
+- O escanea el código QR con **Expo Go**.
 
-### Paso 2: Crear el Primer Usuario (Rol Afiliado)
-1. En la pantalla de login, toca en **"¿No tienes cuenta? Regístrate"**.
-2. Completa los datos personales (Cédula, Nombre, Correo, EPS, Contraseña y Dirección).
-3. Al registrarte, el sistema creará tu usuario en Firebase Auth y tu perfil en Firestore con el rol predeterminado `afiliado`.
+### 4.2. Ejecutar la Suite de Pruebas Automáticas
+```bash
+npm test
+```
+Verifica 24 pruebas automatizadas de evaluación de stock, vencimiento, OCR heurístico, transacciones atómicas, validación de recetas y esquemas Zod.
 
-### Paso 3: Probar Roles Especiales (Despachador / Administrador / Domiciliario)
-Para cambiar el rol de un usuario registrado y acceder a los otros módulos:
-1. Abre tu consola de [Firebase Firestore](https://console.firebase.google.com).
-2. Ve a la colección `usuarios` y busca el documento correspondiente a tu UID.
-3. Edita el campo `rol` con cualquiera de los siguientes valores:
-   - `afiliado` -> Acceso a catálogo, creación de pedidos, recetas y rastreo.
-   - `despachador` -> Acceso a inventario completo de medicamentos y módulo de despacho/preparación.
-   - `domiciliario` -> Acceso a pedidos asignados, disponibilidad y mapa de entrega.
-   - `administrador` -> Dashboard global con métricas en vivo y alertas.
-4. Cierra sesión y vuelve a iniciar sesión en la app: el guardia de navegación (`_layout.tsx`) te redirigirá automáticamente a la pantalla de tu rol.
+### 4.3. Verificación de Tipos TypeScript
+```bash
+npm run typecheck
+```
 
 ---
 
-## Accesibilidad y Sistema de Temas (Claro / Oscuro)
+## 5. Módulos y Roles del Sistema
 
-La aplicación cuenta con soporte completo de accesibilidad visual y temas:
-- **Modo Claro (`light`)**: Tonos teal suaves `#f1f5f9` y texto de alto contraste `#0f172a`.
-- **Modo Oscuro (`dark`)**: Tonos profundos `#0b1120`, tarjetas `#151f32` y texto `#f8fafc`.
-- **Automático (`system`)**: Se adapta automáticamente al modo del sistema operativo.
-- **Cómo cambiarlo**: Desde la pestaña **Perfil** de cualquier rol, usa el componente selector de tema para alternar tu preferencia en cualquier momento.
+| Rol | Funcionalidades Principales |
+| :--- | :--- |
+| **Afiliado** | Catálogo en vivo, nueva solicitud con captura de receta (cámara/galería), OCR gratuito con corrección manual, seguimiento de pedidos en mapa (OpenStreetMap) con checkpoints en tiempo real, histórico de pedidos, direcciones de entrega y tema claro/oscuro. |
+| **Despachador** | CRUD y filtros de inventario de medicamentos, revisión de fórmulas médicas mediante visor seguro con URLs firmadas, validación/corrección de OCR, aprobación/rechazo de recetas con motivo, preparación con descuento atómico de stock y asignación de domiciliarios disponibles. |
+| **Domiciliario** | Control de disponibilidad, lista de pedidos asignados, transmisión de geolocalización GPS continua y registro de puntos de control (checkpoints: `pedido_recibido` -> `pedido_recogido` -> `en_camino` -> `cerca_destino` -> `pedido_entregado`). |
+| **Administrador** | Dashboard con métricas globales en vivo (pedidos pendientes, recetas por validar, alertas de stock bajo y vencimiento a 30 días), reportes operativos, gestión de PQRS con módulo de respuesta formal y panel de inventario con herramienta de siembra inicial (Seeder). |
 
 ---
 
-## Comandos del Proyecto
+## 6. Comandos Disponibles
 
 | Comando | Descripción |
 | :--- | :--- |
-| `npm run start` | Inicia el servidor de desarrollo Expo / Metro. |
-| `npm run start:lan` | Inicia en red local (misma red Wi-Fi). |
-| `npm run start:tunnel` | Inicia con túnel remoto (ideal para universidades/oficinas o problemas de red). |
-| `npm run web` | Inicia la versión Web en el navegador (fallback de visualización). |
-| `npm run start:clear` | Inicia limpiando caché de Metro Bundler. |
-| `npm run typecheck` | Ejecuta el validador estático de TypeScript (`tsc --noEmit`). |
-| `npm run doctor` | Diagnóstico oficial de dependencias de Expo (`npx expo-doctor`). |
-| `npm run android` | Ejecuta la app directamente en dispositivo/emulador Android. |
-| `npm run ios` | Ejecuta la app directamente en simulador de iOS. |
-| `npm run eas:build:preview:android` | Genera un archivo `.apk` de prueba en la nube vía EAS. |
-
----
-
-## Estructura y Seguridad de Datos
-
-- **Cero Base64 en Firestore:** Las imágenes de recetas médicas se procesan, se comprimen y se almacenan en Supabase Storage. Firestore almacena únicamente los metadatos y la ruta segura.
-- **Control Atómico de Inventario:** Las deducciones de stock se ejecutan mediante transacciones atómicas (`runTransaction`), garantizando que nunca se produzca stock negativo ni inconsistencias por solicitudes simultáneas.
-- **Snapshots Inmutables de Pedidos:** Cada ítem solicitado conserva un snapshot de los datos del medicamento, protegiendo el histórico ante futuras modificaciones del catálogo.
+| `npm start` | Inicia el servidor de desarrollo Expo / Metro. |
+| `npm test` | Ejecuta la suite de pruebas unitarias y de lógica de negocio. |
+| `npm run typecheck` | Validador estático de tipos TypeScript (`tsc --noEmit`). |
+| `npm run doctor` | Diagnóstico de dependencias de Expo (`npx expo-doctor`). |
+| `npm run web` | Inicia la app en navegador web. |
+| `npm run eas:build:preview:android` | Genera build `.apk` de prueba en la nube vía EAS. |
