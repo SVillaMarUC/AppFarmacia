@@ -5,49 +5,51 @@ import {
   getDoc,
   serverTimestamp,
   updateDoc,
-  Timestamp,
 } from 'firebase/firestore';
+import { z } from 'zod';
 import { db } from '@/services/firebase/config';
 import { medicationService } from '@/services/medication.service';
 import { prescriptionService } from '@/services/prescription.service';
 import type { Pedido } from '@/types';
 
+const itemPedidoSchema = z.object({
+  medicamentoId: z.string().optional(),
+  nombre: z.string().min(1, 'El nombre del medicamento es requerido'),
+  principioActivo: z.string().optional(),
+  concentracion: z.string().optional(),
+  presentacion: z.string().optional(),
+  dosis: z.string().optional(),
+  cantidad: z.number().int().positive('La cantidad debe ser mayor a 0'),
+  requiereReceta: z.boolean().optional(),
+  observacion: z.string().optional(),
+});
+
+const crearPedidoSchema = z.object({
+  usuarioId: z.string().min(1, 'El ID de usuario es obligatorio'),
+  medicamentos: z.array(itemPedidoSchema).min(1, 'El pedido debe incluir al menos un medicamento'),
+  modoEntrega: z.enum(['domicilio', 'recogida']),
+  ciudad: z.string().optional(),
+  direccionEntrega: z.any().optional(),
+  recetaId: z.string().nullable().optional(),
+  recetaUrl: z.string().nullable().optional(),
+  origenSolicitud: z.enum(['manual', 'ocr']).optional(),
+  recetaOCRData: z.record(z.unknown()).optional(),
+});
+
 export const orderService = {
   /**
    * Crea un nuevo pedido con snapshot inmutable de cada medicamento y vinculación de receta
    */
-  async crearPedido(data: {
-    usuarioId: string;
-    medicamentos: Array<{
-      medicamentoId?: string;
-      nombre: string;
-      principioActivo?: string;
-      concentracion?: string;
-      presentacion?: string;
-      dosis?: string;
-      cantidad: number;
-      requiereReceta?: boolean;
-      observacion?: string;
-    }>;
-    modoEntrega: 'domicilio' | 'recogida';
-    ciudad?: string;
-    direccionEntrega?: Pedido['direccionEntrega'];
-    recetaId?: string | null;
-    recetaUrl?: string | null;
-    origenSolicitud?: 'manual' | 'ocr';
-    recetaOCRData?: Record<string, unknown>;
-  }): Promise<string> {
-    if (!data.medicamentos || data.medicamentos.length === 0) {
-      throw new Error('El pedido debe incluir al menos un medicamento.');
-    }
+  async crearPedido(data: z.infer<typeof crearPedidoSchema>): Promise<string> {
+    const validado = crearPedidoSchema.parse(data);
 
-    const requiereReceta = data.medicamentos.some((m) => m.requiereReceta);
-    if (requiereReceta && !data.recetaId && !data.recetaUrl) {
+    const requiereReceta = validado.medicamentos.some((m) => m.requiereReceta);
+    if (requiereReceta && !validado.recetaId && !validado.recetaUrl) {
       throw new Error('Uno o más medicamentos seleccionados requieren receta médica obligatoria.');
     }
 
     // Crear snapshot inmutable
-    const medicamentosSnapshot = data.medicamentos.map((m) => ({
+    const medicamentosSnapshot = validado.medicamentos.map((m) => ({
       medicamentoId: m.medicamentoId || '',
       nombre: m.nombre.trim(),
       principioActivo: m.principioActivo || '',
@@ -60,25 +62,25 @@ export const orderService = {
     }));
 
     const nuevoPedido = {
-      usuarioId: data.usuarioId,
+      usuarioId: validado.usuarioId,
       medicamentos: medicamentosSnapshot,
       estado: 'pendiente' as const,
-      modoEntrega: data.modoEntrega,
-      ciudad: data.ciudad || '',
-      direccionEntrega: data.direccionEntrega || null,
-      recetaId: data.recetaId || null,
-      recetaUrl: data.recetaUrl || null,
-      recetaEstado: data.recetaId ? ('pendiente' as const) : undefined,
-      recetaOCRData: data.recetaOCRData || {},
-      origenSolicitud: data.origenSolicitud || 'manual',
+      modoEntrega: validado.modoEntrega,
+      ciudad: validado.ciudad || '',
+      direccionEntrega: validado.direccionEntrega || null,
+      recetaId: validado.recetaId || null,
+      recetaUrl: validado.recetaUrl || null,
+      recetaEstado: validado.recetaId ? ('pendiente' as const) : undefined,
+      recetaOCRData: validado.recetaOCRData || {},
+      origenSolicitud: validado.origenSolicitud || 'manual',
       timestampCreacion: serverTimestamp(),
     };
 
     const docRef = await addDoc(collection(db, 'pedidos'), nuevoPedido);
 
     // Si hay una receta asociada, registrar el pedidoId en la receta
-    if (data.recetaId) {
-      await prescriptionService.asociarPedido(data.recetaId, docRef.id);
+    if (validado.recetaId) {
+      await prescriptionService.asociarPedido(validado.recetaId, docRef.id);
     }
 
     return docRef.id;

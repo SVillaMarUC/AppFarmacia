@@ -54,17 +54,30 @@ export default function LoginScreen() {
       return;
     }
 
-    const cedulaLimpia = cedulaInput.replace(/\D/g, '');
-    if (cedulaLimpia.length < 7 || cedulaLimpia.length > 10) {
-      setCedulaError('La cédula debe tener entre 7 y 10 dígitos.');
+    const inputLimpio = cedulaInput.trim();
+    if (!inputLimpio) {
+      setCedulaError('Ingresa tu cédula o correo electrónico.');
       return;
+    }
+
+    if (inputLimpio.includes('@')) {
+      if (!/\S+@\S+\.\S+/.test(inputLimpio)) {
+        setCedulaError('Ingresa un correo electrónico válido.');
+        return;
+      }
+    } else {
+      const cedulaLimpia = inputLimpio.replace(/\D/g, '');
+      if (cedulaLimpia.length < 7 || cedulaLimpia.length > 10) {
+        setCedulaError('La cédula debe tener entre 7 y 10 dígitos.');
+        return;
+      }
     }
 
     setCedulaError('');
     Keyboard.dismiss();
 
     try {
-      await login(cedulaLimpia, contrasena);
+      await login(inputLimpio, contrasena);
     } catch (e) {
       const mensaje = e instanceof Error ? e.message : 'No se pudo iniciar sesión.';
       Alert.alert('Error de inicio de sesión', mensaje);
@@ -79,23 +92,24 @@ export default function LoginScreen() {
           <ScreenHeader
             kicker="EPS • Farmacia • Entregas"
             title="FarmaYa"
-            subtitle="Accede con tu cédula EPS y revisa tus medicamentos con un flujo simple y confiable."
+            subtitle="Accede con tu cédula o correo y gestiona tus medicamentos con un flujo simple y seguro."
           />
 
           <Card>
             <View style={styles.cardContent}>
               <Input
-                label="Cédula"
+                label="Cédula o Correo Electrónico"
                 value={cedulaInput}
                 onChangeText={(value) => {
-                  setCedulaInput(value.replace(/\D/g, ''));
+                  setCedulaInput(value);
                   if (cedulaError) {
                     setCedulaError('');
                   }
                 }}
-                placeholder="Número de cédula"
-                keyboardType="numeric"
-                maxLength={10}
+                placeholder="Ej. 1020304050 o usuario@correo.com"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoCorrect={false}
               />
               {cedulaError ? (
                 <Text style={[styles.error, { color: theme.colors.error }]}>{cedulaError}</Text>

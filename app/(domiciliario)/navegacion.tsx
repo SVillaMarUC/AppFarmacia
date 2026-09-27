@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +13,8 @@ import {
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -21,6 +25,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/services/firebase/config';
 import { firestoreService } from '@/services/firebase/firestore.service';
+import { storageService } from '@/services/storage/storage.service';
 import type { Checkpoint, EstadoCheckpoint, Pedido, TipoCheckpoint } from '@/types';
 
 type EstadoUbicacion = {
@@ -75,6 +80,7 @@ export default function NavegacionScreen() {
   const [ubicacion, setUbicacion] = useState<EstadoUbicacion | null>(null);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [observacion, setObservacion] = useState('');
+  const [evidenciaUri, setEvidenciaUri] = useState<string | null>(null);
   const [procesandoCheckpoint, setProcesandoCheckpoint] = useState(false);
 
   // Escuchar pedidos asignados al domiciliario
@@ -198,6 +204,38 @@ export default function NavegacionScreen() {
     return CHECKPOINTS_CONFIG.find((c) => !tiposCompletados.has(c.tipo)) || null;
   }, [checkpoints]);
 
+  const seleccionarFotoEvidencia = async (desdeCamara: boolean) => {
+    try {
+      const permiso = desdeCamara
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permiso.granted) {
+        Alert.alert('Permiso requerido', 'Se requiere acceso a la cámara o galería para adjuntar la foto de entrega.');
+        return;
+      }
+
+      const result = desdeCamara && Platform.OS !== 'web'
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            quality: 0.7,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            quality: 0.7,
+          });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setEvidenciaUri(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Error al capturar evidencia:', err);
+      Alert.alert('Error', 'No fue posible cargar la imagen de evidencia.');
+    }
+  };
+
   const registrarCheckpoint = async (config: CheckpointConfig) => {
     if (!pedidoActivo?.id || !perfil?.uid) {
       Alert.alert('Sin pedido activo', 'No tienes un pedido activo asignado para actualizar.');
@@ -206,6 +244,23 @@ export default function NavegacionScreen() {
 
     try {
       setProcesandoCheckpoint(true);
+
+      let evidenciaPath: string | null = null;
+      let evidenciaUrl: string | null = null;
+
+      if (config.tipo === 'pedido_entregado' && evidenciaUri) {
+        try {
+          const uploadRes = await storageService.uploadEvidenciaEntrega(
+            evidenciaUri,
+            pedidoActivo.id,
+            perfil.uid
+          );
+          evidenciaPath = uploadRes.storagePath;
+          evidenciaUrl = uploadRes.url;
+        } catch (uploadErr) {
+          console.warn('Advertencia al subir evidencia:', uploadErr);
+        }
+      }
 
       await firestoreService.registrarCheckpoint(pedidoActivo.id, perfil.uid, {
         tipo: config.tipo,
@@ -226,10 +281,13 @@ export default function NavegacionScreen() {
         await updateDoc(doc(db, 'pedidos', pedidoActivo.id), {
           estado: 'entregado',
           timestampEntrega: serverTimestamp(),
+          ...(evidenciaPath ? { evidenciaEntregaStoragePath: evidenciaPath } : {}),
+          ...(evidenciaUrl ? { evidenciaEntregaUrl: evidenciaUrl } : {}),
         });
       }
 
       setObservacion('');
+      setEvidenciaUri(null);
       Alert.alert('Checkpoint Registrado', `Has completado: ${config.titulo}`);
     } catch (error) {
       console.error('Error al registrar checkpoint:', error);
@@ -334,6 +392,55 @@ export default function NavegacionScreen() {
                 onChangeText={setObservacion}
               />
 
+              {checkpointSiguiente.tipo === 'pedido_entregado' && (
+                <View style={styles.evidenciaContainer}>
+                  <Text style={[styles.evidenciaTitulo, { color: theme.colors.text }]}>
+                    Foto de Evidencia de Entrega (Opcional)
+                  </Text>
+                  {evidenciaUri ? (
+                    <View style={styles.previewBox}>
+                      <Image source={{ uri: evidenciaUri }} style={styles.previewImage} />
+                      <TouchableOpacity
+                        style={[styles.removeFotoBtn, { backgroundColor: theme.colors.error }]}
+                        onPress={() => setEvidenciaUri(null)}
+                      >
+                        <Text style={styles.removeFotoText}>Quitar foto</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.fotoBotonesRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.fotoBtn,
+                          {
+                            backgroundColor: theme.colors.primaryLight,
+                            borderColor: theme.colors.primary,
+                          },
+                        ]}
+                        onPress={() => seleccionarFotoEvidencia(true)}
+                      >
+                        <Ionicons name="camera" size={18} color={theme.colors.primary} />
+                        <Text style={[styles.fotoBtnText, { color: theme.colors.primary }]}>Cámara</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.fotoBtn,
+                          {
+                            backgroundColor: theme.colors.surfaceSecondary,
+                            borderColor: theme.colors.border,
+                          },
+                        ]}
+                        onPress={() => seleccionarFotoEvidencia(false)}
+                      >
+                        <Ionicons name="images" size={18} color={theme.colors.textSecondary} />
+                        <Text style={[styles.fotoBtnText, { color: theme.colors.textSecondary }]}>Galería</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              )}
+
               <Button
                 texto={`Completar: ${checkpointSiguiente.titulo}`}
                 onPress={() => registrarCheckpoint(checkpointSiguiente)}
@@ -386,6 +493,24 @@ const styles = StyleSheet.create({
   linea: { fontWeight: '700', fontSize: 14 },
   cpTituloActivo: { fontSize: 15, fontWeight: '700' },
   inputObs: { borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 13, marginVertical: 6 },
+  evidenciaContainer: { gap: 8, marginVertical: 6 },
+  evidenciaTitulo: { fontSize: 13, fontWeight: '700' },
+  fotoBotonesRow: { flexDirection: 'row', gap: 10 },
+  fotoBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  fotoBtnText: { fontSize: 13, fontWeight: '600' },
+  previewBox: { alignItems: 'center', gap: 8 },
+  previewImage: { width: '100%', height: 160, borderRadius: 8, resizeMode: 'cover' },
+  removeFotoBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 },
+  removeFotoText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
   timeline: { gap: 10, marginTop: 6 },
   timelineRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   checkIcon: { fontSize: 16, fontWeight: 'bold', width: 20 },
