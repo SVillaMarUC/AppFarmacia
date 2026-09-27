@@ -23,6 +23,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { db } from '@/services/firebase/config';
 import { prescriptionService } from '@/services/prescription.service';
 import { orderService } from '@/services/order.service';
+import { notificationService } from '@/services/notification.service';
 import type { Pedido, RecetaMedica, Usuario } from '@/types';
 
 type DomiciliarioDisponible = Pick<Usuario, 'uid' | 'nombre' | 'cedula'> & { pedidosActivos: number };
@@ -165,6 +166,10 @@ export default function DespacharScreen() {
         recetaEstado: 'aprobada',
       });
       setRecetaActiva({ ...recetaActiva, estado: 'aprobada' });
+      void notificationService.enviarNotificacionLocal(
+        'Fórmula Médica Aprobada ✅',
+        `La receta del pedido #${pedidoRecetaActivo.id.slice(0, 6)} fue aprobada.`
+      );
       Alert.alert('Receta Aprobada', 'La fórmula médica ha sido validada satisfactoriamente.');
     } catch (error) {
       Alert.alert('Error', 'No fue posible aprobar la receta.');
@@ -192,6 +197,10 @@ export default function DespacharScreen() {
         observacionesDespacho: `Receta rechazada: ${motivoRechazo.trim()}`,
       });
       setRecetaActiva({ ...recetaActiva, estado: 'rechazada', motivoRechazo: motivoRechazo.trim() });
+      void notificationService.enviarNotificacionLocal(
+        'Fórmula Médica Rechazada ⚠️',
+        `Motivo: ${motivoRechazo.trim()}`
+      );
       Alert.alert('Receta Rechazada', 'Se ha notificado el rechazo de la fórmula.');
     } catch (error) {
       Alert.alert('Error', 'No fue posible rechazar la receta.');
@@ -234,6 +243,10 @@ export default function DespacharScreen() {
         asignadoEn: serverTimestamp(),
       });
       setModalAsignarVisible(false);
+      void notificationService.enviarNotificacionLocal(
+        'Pedido Asignado a Domiciliario 🛵',
+        `El pedido #${pedidoParaAsignar.id.slice(0, 6)} fue asignado para entrega.`
+      );
       Alert.alert('Éxito', 'Pedido asignado al domiciliario correctamente.');
     } catch (error) {
       Alert.alert('Error', 'No fue posible asignar el pedido.');

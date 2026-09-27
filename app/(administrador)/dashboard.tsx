@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Button } from '@/components/ui/Button';
@@ -238,6 +238,12 @@ export default function DashboardAdminScreen() {
             <Text style={[styles.rowText, { color: theme.colors.text }]}>
               Medicamentos: {pedidoSeleccionado?.medicamentos.map((m) => `${m.nombre} x${m.cantidad}`).join(', ')}
             </Text>
+            {pedidoSeleccionado?.evidenciaEntregaUrl ? (
+              <View style={styles.evidenciaBox}>
+                <Text style={[styles.evidenciaTitulo, { color: theme.colors.text }]}>Evidencia de Entrega:</Text>
+                <Image source={{ uri: pedidoSeleccionado.evidenciaEntregaUrl }} style={styles.evidenciaImg} />
+              </View>
+            ) : null}
             <Button texto="Cerrar" onPress={() => setPedidoSeleccionado(null)} />
           </View>
         </View>
@@ -305,5 +311,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     gap: 10,
+  },
+  evidenciaBox: {
+    gap: 6,
+    marginVertical: 4,
+  },
+  evidenciaTitulo: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  evidenciaImg: {
+    width: '100%',
+    height: 140,
+    borderRadius: 8,
+    resizeMode: 'cover',
   },
 });

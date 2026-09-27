@@ -66,6 +66,15 @@ export default function AfiliadoLayout() {
           }}
         />
         <Tabs.Screen
+          name="pqrs"
+          options={{
+            title: 'PQRS',
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'chatbubble' : 'chatbubble-outline'} color={color} size={size ?? 24} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="perfil"
           options={{
             title: 'Perfil',
