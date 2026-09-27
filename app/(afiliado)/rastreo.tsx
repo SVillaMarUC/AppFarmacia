@@ -187,23 +187,16 @@ export default function RastreoScreen() {
         {/* Mapa y Geolocalización */}
         <Card>
           <View style={styles.cardBlock}>
-            <Text style={[styles.tituloSeccion, { color: theme.colors.text }]}>Mapa de Seguimiento</Text>
-            {loadingUbicacion ? (
-              <View style={styles.loaderWrap}>
-                <ActivityIndicator color={theme.colors.primary} size="large" />
-              </View>
-            ) : null}
+            <Text style={[styles.tituloSeccion, { color: theme.colors.text }]}>Mapa de Seguimiento en Vivo</Text>
 
-            {!loadingUbicacion && permissionDenied ? (
+            {permissionDenied ? (
               <View style={styles.block}>
                 <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
-                  Para mostrar tu posición en el mapa se requiere permiso de ubicación.
+                  Para mostrar tu posición exacta en el mapa se requiere permiso de ubicación.
                 </Text>
                 <Button texto="Abrir configuración" onPress={() => Linking.openSettings()} />
               </View>
-            ) : null}
-
-            {!loadingUbicacion && !permissionDenied && ubicacion ? (
+            ) : (
               <View style={styles.block}>
                 <PlatformMap
                   latitude={mapCenterLat}
@@ -219,11 +212,11 @@ export default function RastreoScreen() {
                   </Text>
                 ) : (
                   <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
-                    Esperando transmisión de coordenadas del domiciliario asignado.
+                    {loadingUbicacion ? 'Obteniendo señal GPS...' : 'Esperando transmisión de coordenadas del domiciliario asignado.'}
                   </Text>
                 )}
               </View>
-            ) : null}
+            )}
           </View>
         </Card>
 
