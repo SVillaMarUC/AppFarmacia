@@ -200,6 +200,7 @@ export default function DashboardAdminScreen() {
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Acciones del Sistema</Text>
             <Button texto="Ver Reportes Operativos" onPress={() => router.push('/(administrador)/reportes')} />
+            <Button texto="Gestión de Usuarios y Roles" onPress={() => router.push('/(administrador)/usuarios' as any)} variant="secundario" />
             <Button texto="Gestión de Catálogo e Inventario (Seeder)" onPress={() => router.push('/(administrador)/inventario' as any)} variant="secundario" />
             <Button texto="Gestión de PQRS" onPress={() => router.push('/(administrador)/pqrs')} variant="secundario" />
           </View>

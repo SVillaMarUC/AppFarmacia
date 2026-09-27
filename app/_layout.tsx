@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { StatusBar } from 'react-native';
-import { Slot, usePathname, useRouter, useSegments } from 'expo-router';
+import { StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Slot, usePathname, useRouter, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider } from '@/context/AuthContext';
@@ -8,6 +8,25 @@ import { PedidoProvider } from '@/context/PedidoContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <View style={styles.errorContainer}>
+      <Card>
+        <View style={styles.errorCard}>
+          <Ionicons name="alert-circle" size={48} color="#dc2626" />
+          <Text style={styles.errorTitulo}>Ocurrió un error inesperado</Text>
+          <Text style={styles.errorDetalle}>
+            {error?.message || 'Ha ocurrido un problema al renderizar la pantalla.'}
+          </Text>
+          <Button texto="Reintentar" onPress={retry} />
+        </View>
+      </Card>
+    </View>
+  );
+}
 
 const Guard = () => {
   const { loading, firebaseUser, perfil } = useAuth();
@@ -103,4 +122,30 @@ export default function RootLayout() {
       <RootContent fontsLoaded={fontsLoaded} fontError={fontError} />
     </ThemeProvider>
   );
-}
+}
+
+const styles = StyleSheet.create({
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f1f5f9',
+  },
+  errorCard: {
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+  },
+  errorTitulo: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  errorDetalle: {
+    fontSize: 13,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+});

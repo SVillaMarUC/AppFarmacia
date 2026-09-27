@@ -7,33 +7,33 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function usuarioData() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
     function esAdmin() {
-      return autenticado() &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'administrador';
+      return autenticado() && usuarioData().rol == 'administrador';
     }
 
     function esDespachador() {
-      return autenticado() &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'despachador';
+      return autenticado() && usuarioData().rol == 'despachador';
     }
 
     function esDomiciliario() {
-      return autenticado() &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'domiciliario';
+      return autenticado() && usuarioData().rol == 'domiciliario';
     }
 
     function esAfiliado() {
-      return autenticado() &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'afiliado';
+      return autenticado() && usuarioData().rol == 'afiliado';
     }
 
     // =========================================================
     // USUARIOS
     // =========================================================
     match /usuarios/{uid} {
-      allow read: if autenticado();
+      allow read: if autenticado() && (request.auth.uid == uid || esAdmin() || esDespachador() || esDomiciliario());
       allow create: if autenticado() && request.auth.uid == uid;
-      allow update: if autenticado() && (request.auth.uid == uid || esAdmin() || esDespachador());
+      allow update: if autenticado() && (request.auth.uid == uid || esAdmin());
       allow delete: if esAdmin();
     }
 
@@ -42,38 +42,11 @@ service cloud.firestore {
     // =========================================================
     match /accesosCedula/{cedula} {
       allow get: if true;
-      allow list: if false;
+      allow list: if esAdmin();
       allow create: if autenticado();
       allow update, delete: if autenticado() && (
-        resource.data.uid == request.auth.uid ||
-        esAdmin()
+        resource.data.uid == request.auth.uid || esAdmin()
       );
-    }
-
-    // =========================================================
-    // PEDIDOS & CHECKPOINTS
-    // =========================================================
-    match /pedidos/{pedidoId} {
-      allow read: if autenticado();
-      allow create: if autenticado();
-      allow update: if autenticado();
-      allow delete: if esAdmin();
-
-      match /checkpoints/{checkpointId} {
-        allow read: if autenticado();
-        allow create, update: if autenticado();
-        allow delete: if false;
-      }
-    }
-
-    // =========================================================
-    // RECETAS MÉDICAS
-    // =========================================================
-    match /recetas/{recetaId} {
-      allow read: if autenticado();
-      allow create: if autenticado();
-      allow update: if autenticado();
-      allow delete: if esAdmin();
     }
 
     // =========================================================
@@ -81,7 +54,50 @@ service cloud.firestore {
     // =========================================================
     match /inventario/{itemId} {
       allow read: if autenticado();
-      allow write: if autenticado();
+      allow write: if esDespachador() || esAdmin();
+    }
+
+    // =========================================================
+    // RECETAS MÉDICAS
+    // =========================================================
+    match /recetas/{recetaId} {
+      allow read: if autenticado() && (
+        resource.data.usuarioId == request.auth.uid || esDespachador() || esAdmin()
+      );
+      allow create: if autenticado() && request.resource.data.usuarioId == request.auth.uid;
+      allow update: if autenticado() && (
+        (esAfiliado() && resource.data.usuarioId == request.auth.uid && resource.data.estado == 'pendiente') ||
+        esDespachador() ||
+        esAdmin()
+      );
+      allow delete: if esAdmin();
+    }
+
+    // =========================================================
+    // PEDIDOS & CHECKPOINTS
+    // =========================================================
+    match /pedidos/{pedidoId} {
+      allow read: if autenticado() && (
+        resource.data.usuarioId == request.auth.uid ||
+        resource.data.domiciliarioId == request.auth.uid ||
+        esDespachador() ||
+        esAdmin()
+      );
+      allow create: if autenticado() && request.resource.data.usuarioId == request.auth.uid;
+      allow update: if autenticado() && (
+        (esDomiciliario() && resource.data.domiciliarioId == request.auth.uid) ||
+        esDespachador() ||
+        esAdmin()
+      );
+      allow delete: if esAdmin();
+
+      match /checkpoints/{checkpointId} {
+        allow read: if autenticado();
+        allow create, update: if autenticado() && (
+          request.resource.data.domiciliarioId == request.auth.uid || esAdmin() || esDespachador()
+        );
+        allow delete: if false;
+      }
     }
 
     // =========================================================
@@ -89,7 +105,7 @@ service cloud.firestore {
     // =========================================================
     match /ubicacionesDomiciliarios/{uid} {
       allow read: if autenticado();
-      allow create, update: if autenticado() && request.auth.uid == uid;
+      allow create, update: if autenticado() && (request.auth.uid == uid || esAdmin());
       allow delete: if false;
     }
 
@@ -97,16 +113,18 @@ service cloud.firestore {
     // REPORTES Y AUDITORÍA
     // =========================================================
     match /reportes/{reporteId} {
-      allow read, write: if autenticado();
+      allow read, write: if esAdmin();
     }
 
     // =========================================================
     // PQRS
     // =========================================================
     match /pqrs/{pqrsId} {
-      allow create: if autenticado();
-      allow read: if autenticado();
-      allow update: if autenticado();
+      allow create: if autenticado() && request.resource.data.usuarioId == request.auth.uid;
+      allow read: if autenticado() && (
+        resource.data.usuarioId == request.auth.uid || esAdmin()
+      );
+      allow update: if esAdmin();
       allow delete: if esAdmin();
     }
 

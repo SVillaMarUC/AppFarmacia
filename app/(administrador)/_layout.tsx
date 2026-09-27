@@ -45,6 +45,15 @@ export default function AdministradorLayout() {
           }}
         />
         <Tabs.Screen
+          name="usuarios"
+          options={{
+            title: 'Usuarios',
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'people' : 'people-outline'} color={color} size={size ?? 24} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="reportes"
           options={{
             title: 'Reportes',
