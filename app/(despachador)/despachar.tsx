@@ -56,14 +56,20 @@ export default function DespacharScreen() {
   useEffect(() => {
     const qPedidos = query(
       collection(db, 'pedidos'),
-      where('estado', 'in', ['pendiente', 'en_preparacion', 'listo']),
-      orderBy('timestampCreacion', 'asc')
+      where('estado', 'in', ['pendiente', 'en_preparacion', 'listo'])
     );
 
     const unsubPedidos = onSnapshot(
       qPedidos,
       (snapshot) => {
-        setPedidos(snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Pedido, 'id'>) } as Pedido)));
+        const lista = snapshot.docs
+          .map((d) => ({ id: d.id, ...(d.data() as Omit<Pedido, 'id'>) } as Pedido))
+          .sort((a, b) => {
+            const timeA = a.timestampCreacion && 'toMillis' in a.timestampCreacion ? a.timestampCreacion.toMillis() : 0;
+            const timeB = b.timestampCreacion && 'toMillis' in b.timestampCreacion ? b.timestampCreacion.toMillis() : 0;
+            return timeA - timeB;
+          });
+        setPedidos(lista);
       },
       (err) => {
         console.error('Error pedidos:', err);

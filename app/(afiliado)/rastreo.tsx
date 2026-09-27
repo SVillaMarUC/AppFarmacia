@@ -51,20 +51,26 @@ export default function RastreoScreen() {
     setLoadingPedido(true);
     const q = query(
       collection(db, 'pedidos'),
-      where('usuarioId', '==', perfil.uid),
-      where('estado', 'in', ['pendiente', 'asignado', 'en_preparacion', 'listo', 'en_camino']),
-      orderBy('timestampCreacion', 'desc')
+      where('usuarioId', '==', perfil.uid)
     );
 
     const unsub = onSnapshot(
       q,
       (snapshot) => {
-        const docItem = snapshot.docs[0];
-        if (docItem) {
-          setPedidoActivo({ id: docItem.id, ...(docItem.data() as Omit<Pedido, 'id'>) });
-        } else {
-          setPedidoActivo(null);
-        }
+        const pedidosUsuario = snapshot.docs.map(
+          (docItem) => ({ id: docItem.id, ...(docItem.data() as Omit<Pedido, 'id'>) } as Pedido)
+        );
+
+        const estadosActivos = ['pendiente', 'asignado', 'en_preparacion', 'listo', 'en_camino'];
+        const activos = pedidosUsuario
+          .filter((p) => estadosActivos.includes(p.estado))
+          .sort((a, b) => {
+            const timeA = a.timestampCreacion && 'toMillis' in a.timestampCreacion ? a.timestampCreacion.toMillis() : 0;
+            const timeB = b.timestampCreacion && 'toMillis' in b.timestampCreacion ? b.timestampCreacion.toMillis() : 0;
+            return timeB - timeA;
+          });
+
+        setPedidoActivo(activos[0] || null);
         setLoadingPedido(false);
       },
       (error) => {
