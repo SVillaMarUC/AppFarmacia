@@ -110,39 +110,18 @@ export const firestoreService = {
   },
 
   async crearPedido(data: Omit<Pedido, 'id' | 'timestampCreacion'>): Promise<string> {
-    try {
-      if (!data.medicamentos || !data.medicamentos.length) {
-        throw new Error('Debes incluir al menos un medicamento.');
-      }
-
-      const ref = await addDoc(collection(db, 'pedidos'), {
-        ...data,
-        timestampCreacion: serverTimestamp(),
-      });
-      return ref.id;
-    } catch (error) {
-      console.error('[Firestore Error] crearPedido:', error);
-      throw new Error('No fue posible crear el pedido.');
-    }
+    const { orderService } = await import('@/services/order.service');
+    return orderService.crearPedido(data as any);
   },
 
   async obtenerInventario(): Promise<ItemInventario[]> {
-    try {
-      const snapshot = await getDocs(collection(db, 'inventario'));
-      return snapshot.docs.map((docItem) => ({ id: docItem.id, ...(docItem.data() as Omit<ItemInventario, 'id'>) }));
-    } catch (error) {
-      console.error('[Firestore Error] obtenerInventario:', error);
-      throw new Error('No fue posible obtener el inventario.');
-    }
+    const { medicationService } = await import('@/services/medication.service');
+    return medicationService.obtenerInventario();
   },
 
   async guardarInventario(item: ItemInventario): Promise<void> {
-    try {
-      await setDoc(doc(db, 'inventario', item.id), item, { merge: true });
-    } catch (error) {
-      console.error('[Firestore Error] guardarInventario:', error);
-      throw new Error('No fue posible guardar el inventario.');
-    }
+    const { medicationService } = await import('@/services/medication.service');
+    return medicationService.actualizarMedicamento(item.id, item);
   },
 
   async actualizarPedido(pedidoId: string, data: Partial<Pedido>): Promise<void> {

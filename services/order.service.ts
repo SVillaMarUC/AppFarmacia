@@ -9,6 +9,7 @@ import {
 import { z } from 'zod';
 import { db } from '@/services/firebase/config';
 import { medicationService } from '@/services/medication.service';
+import { notificationService } from '@/services/notification.service';
 import { prescriptionService } from '@/services/prescription.service';
 import type { Pedido } from '@/types';
 
@@ -83,6 +84,11 @@ export const orderService = {
       await prescriptionService.asociarPedido(validado.recetaId, docRef.id);
     }
 
+    void notificationService.enviarNotificacionLocal(
+      'Pedido Creado 📦',
+      'Tu solicitud de medicamentos fue registrada correctamente.'
+    );
+
     return docRef.id;
   },
 
@@ -136,6 +142,11 @@ export const orderService = {
       preparadoEn: serverTimestamp(),
       observacionesDespacho: observaciones || null,
     });
+
+    void notificationService.enviarNotificacionLocal(
+      'Pedido Preparado 💊',
+      'El pedido fue validado y se encuentra listo para entrega.'
+    );
   },
 
   /**
@@ -148,5 +159,10 @@ export const orderService = {
       ...(estado === 'entregado' ? { timestampEntrega: serverTimestamp() } : {}),
       ...(estado === 'asignado' ? { asignadoEn: serverTimestamp() } : {}),
     });
+
+    void notificationService.enviarNotificacionLocal(
+      'Actualización de Pedido',
+      `El pedido #${pedidoId.slice(0, 6)} ahora está: ${estado.replace('_', ' ')}`
+    );
   },
 };

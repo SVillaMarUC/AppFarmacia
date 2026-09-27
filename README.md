@@ -13,6 +13,9 @@ Aplicación móvil multiplataforma desarrollada en **React Native / Expo SDK 57 
 - **Mapas y Geolocalización Libres (OpenStreetMap):** Visualización de mapas interactivos y rastreo de domiciliarios mediante OpenStreetMap y `expo-location`, con costo cero y sin dependencia de Google Maps API.
 - **Transacciones Atómicas de Stock:** Deducción y restauración de existencias de inventario mediante `runTransaction` de Firestore, previniendo stock negativo y condiciones de carrera en despachos concurrentes.
 
+- **Notificaciones In-App y Locales:** Integración con `expo-notifications` para alertar en tiempo real sobre cambios de estado en pedidos, aprobación/rechazo de recetas y asignaciones de domiciliarios.
+- **Evidencia Digital de Entrega:** Captura fotográfica obligatoria/opcional al finalizar la entrega (`pedido_entregado`) con almacenamiento seguro y visualización administrativa.
+
 ---
 
 ## 2. Requisitos Previos
@@ -96,10 +99,10 @@ npm run typecheck
 
 | Rol | Funcionalidades Principales |
 | :--- | :--- |
-| **Afiliado** | Catálogo en vivo, nueva solicitud con captura de receta (cámara/galería), OCR gratuito con corrección manual, seguimiento de pedidos en mapa (OpenStreetMap) con checkpoints en tiempo real, histórico de pedidos, direcciones de entrega y tema claro/oscuro. |
+| **Afiliado** | Catálogo en vivo, nueva solicitud con captura de receta (cámara/galería), OCR gratuito con corrección manual, seguimiento de pedidos en mapa (OpenStreetMap) con checkpoints en tiempo real, radicación y consulta de PQRS, histórico de pedidos, direcciones de entrega y tema claro/oscuro. |
 | **Despachador** | CRUD y filtros de inventario de medicamentos, revisión de fórmulas médicas mediante visor seguro con URLs firmadas, validación/corrección de OCR, aprobación/rechazo de recetas con motivo, preparación con descuento atómico de stock y asignación de domiciliarios disponibles. |
-| **Domiciliario** | Control de disponibilidad, lista de pedidos asignados, transmisión de geolocalización GPS continua y registro de puntos de control (checkpoints: `pedido_recibido` -> `pedido_recogido` -> `en_camino` -> `cerca_destino` -> `pedido_entregado`). |
-| **Administrador** | Dashboard con métricas globales en vivo (pedidos pendientes, recetas por validar, alertas de stock bajo y vencimiento a 30 días), reportes operativos, gestión de PQRS con módulo de respuesta formal y panel de inventario con herramienta de siembra inicial (Seeder). |
+| **Domiciliario** | Control de disponibilidad, lista de pedidos asignados, transmisión de geolocalización GPS continua, registro de 5 checkpoints y captura de foto de evidencia de entrega final. |
+| **Administrador** | Dashboard con métricas globales en vivo, gestión y cambio de roles de usuarios, reportes operativos, gestión de PQRS con respuesta formal y panel de inventario con herramienta de siembra inicial (Seeder). |
 
 ---
 

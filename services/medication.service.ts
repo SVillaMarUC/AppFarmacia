@@ -10,7 +10,7 @@ import {
   serverTimestamp,
   updateDoc,
   where,
-  Timestamp,
+  type Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import type { ItemInventario } from '@/types';

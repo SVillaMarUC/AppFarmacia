@@ -110,6 +110,8 @@ export interface Pedido {
   asignadoEn?: Timestamp;
   preparadoEn?: Timestamp;
   ubicacionEntrega?: GeoPoint;
+  evidenciaEntregaUrl?: string | null;
+  evidenciaEntregaStoragePath?: string | null;
 }
 
 export interface ItemInventario {
