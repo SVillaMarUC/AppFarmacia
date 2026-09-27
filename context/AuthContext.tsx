@@ -72,8 +72,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         dispatch({ type: 'SET_SESSION', payload: { firebaseUser, perfil } });
-        void import('@/services/notification.service').then(({ notificationService }) => {
-          void notificationService.solicitarPermisos();
+        void import('@/services/notification.service').then((mod) => {
+          const service = mod?.notificationService ?? mod?.default;
+          if (service) {
+            void service.solicitarPermisos();
+          }
         });
       } catch (error) {
         dispatch({ type: 'SET_ERROR', payload: 'No se pudo validar la sesión.' });
