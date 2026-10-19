@@ -147,8 +147,10 @@ export default function RastreoScreen() {
   const mapCenterLng = ubicacionDomiciliario?.longitud ?? ubicacion?.longitud ?? -74.072;
 
   const markers = [];
+
   if (ubicacionDomiciliario) {
     markers.push({
+      id: 'domiciliario',
       latitude: ubicacionDomiciliario.latitud,
       longitude: ubicacionDomiciliario.longitud,
       title: 'Domiciliario',
@@ -156,8 +158,10 @@ export default function RastreoScreen() {
       color: theme.colors.primary,
     });
   }
+
   if (ubicacion) {
     markers.push({
+      id: 'usuario',
       latitude: ubicacion.latitud,
       longitude: ubicacion.longitud,
       title: 'Tu ubicación',
