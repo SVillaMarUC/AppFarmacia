@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,53 +6,11 @@ import { useTheme } from '@/context/ThemeContext';
 import type { PlatformMapProps } from './PlatformMap.types';
 
 /**
- * Componente de mapa nativo (Android / iOS) basado en Leaflet + OpenStreetMap (CartoDB Voyager)
- * usando react-native-webview.
- * 
- * ✅ 100% Libre y gratuito: No requiere API key de Google Maps.
- * ✅ Cero pantallas grises: Carga directamente en Expo Go y builds nativos.
- * ✅ Interactivo: Soporta zoom táctil, paneo, marcadores personalizados y apertura en apps GPS externas.
+ * Mapa nativo (Android / iOS): Leaflet + OpenStreetMap dentro de una WebView.
+ * El HTML se carga una sola vez; los marcadores se actualizan vía injectJavaScript,
+ * así el mapa no se recarga ni pierde zoom/paneo cuando el repartidor se mueve.
  */
-export const PlatformMap = ({
-  latitude,
-  longitude,
-  title = 'Ubicación',
-  description,
-  height = 220,
-  markers = [],
-}: PlatformMapProps) => {
-  const { theme } = useTheme();
-  const webViewRef = useRef<WebView>(null);
-
-  const handleOpenExternalMap = () => {
-    const url = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=16/${latitude}/${longitude}`;
-    void Linking.openURL(url);
-  };
-
-  const htmlContent = useMemo(() => {
-    const safeLat = Number.isFinite(latitude) ? latitude : 4.711;
-    const safeLng = Number.isFinite(longitude) ? longitude : -74.072;
-
-    const markersData = [
-      {
-        lat: safeLat,
-        lng: safeLng,
-        title: title || 'Ubicación',
-        desc: description || '',
-        color: '#2563eb',
-        icon: '📍',
-      },
-      ...markers.map((m) => ({
-        lat: m.latitude,
-        lng: m.longitude,
-        title: m.title || 'Punto',
-        desc: m.description || '',
-        color: m.color || '#0f766e',
-        icon: m.title?.toLowerCase().includes('domiciliario') ? '🛵' : '📍',
-      })),
-    ];
-
-    return `
+const buildHtml = (lat: number, lng: number) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -63,105 +21,142 @@ export const PlatformMap = ({
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body, #map { width: 100%; height: 100%; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .custom-pin {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      font-size: 18px;
-      border: 2px solid #2563eb;
-    }
-    .leaflet-popup-content-wrapper {
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      font-size: 12px;
-      padding: 2px;
-    }
+    .custom-pin { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+      border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-size: 18px; border: 2px solid #2563eb; }
+    .leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 12px; padding: 2px; }
     .popup-title { font-weight: 700; color: #0f172a; margin-bottom: 2px; font-size: 13px; }
     .popup-desc { color: #475569; font-size: 11px; }
+    .osm-credit { position: absolute; left: 6px; bottom: 4px; z-index: 1000; font-size: 10px; color: #334155;
+      background: rgba(255,255,255,0.75); padding: 1px 5px; border-radius: 4px; }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div class="osm-credit">© OpenStreetMap</div>
   <script>
-    var map = L.map('map', {
-      zoomControl: false,
-      attributionControl: false
-    }).setView([${safeLat}, ${safeLng}], 15);
+    var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${lat}, ${lng}], 15);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd'
-    }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-    var markers = ${JSON.stringify(markersData)};
-    var bounds = [];
+    var pins = {};
+    var fitted = false;
+    var userMoved = false;
+    map.on('dragstart zoomstart', function () { userMoved = true; });
 
-    markers.forEach(function(m) {
-      var icon = L.divIcon({
-        className: '',
-        html: '<div class="custom-pin" style="border-color:' + m.color + '">' + m.icon + '</div>',
-        iconSize: [34, 34],
-        iconAnchor: [17, 17]
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
       });
-
-      var marker = L.marker([m.lat, m.lng], { icon: icon }).addTo(map);
-      marker.bindPopup('<div class="popup-title">' + m.title + '</div>' + (m.desc ? '<div class="popup-desc">' + m.desc + '</div>' : ''));
-      bounds.push([m.lat, m.lng]);
-    });
-
-    if (bounds.length > 1) {
-      map.fitBounds(bounds, { padding: [30, 30] });
     }
+
+    window.setMarkers = function (list) {
+      var seen = {};
+      list.forEach(function (m) {
+        seen[m.id] = true;
+        var html = '<div class="popup-title">' + esc(m.title) + '</div>' +
+          (m.desc ? '<div class="popup-desc">' + esc(m.desc) + '</div>' : '');
+        if (pins[m.id]) {
+          pins[m.id].setLatLng([m.lat, m.lng]);
+          pins[m.id].setPopupContent(html);
+        } else {
+          var icon = L.divIcon({
+            className: '', iconSize: [34, 34], iconAnchor: [17, 17],
+            html: '<div class="custom-pin" style="border-color:' + esc(m.color) + '">' + m.icon + '</div>'
+          });
+          pins[m.id] = L.marker([m.lat, m.lng], { icon: icon }).addTo(map).bindPopup(html);
+        }
+      });
+      Object.keys(pins).forEach(function (id) {
+        if (!seen[id]) { map.removeLayer(pins[id]); delete pins[id]; }
+      });
+      var pts = list.map(function (m) { return [m.lat, m.lng]; });
+      if (pts.length > 1 && (!fitted || !userMoved)) {
+        map.fitBounds(pts, { padding: [30, 30], maxZoom: 17, animate: true });
+        fitted = true;
+      }
+    };
   </script>
 </body>
 </html>
-    `;
+`;
+
+export const PlatformMap = ({
+  latitude,
+  longitude,
+  title = 'Ubicación',
+  description,
+  height = 220,
+  markers = [],
+}: PlatformMapProps) => {
+  const { theme } = useTheme();
+  const webViewRef = useRef<WebView>(null);
+  const [ready, setReady] = useState(false);
+
+  const handleOpenExternalMap = () => {
+    const url = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=16/${latitude}/${longitude}`;
+    void Linking.openURL(url);
+  };
+
+  // Lista completa de marcadores (el destino siempre va primero)
+  const markersData = useMemo(() => {
+    const safeLat = Number.isFinite(latitude) ? latitude : 4.711;
+    const safeLng = Number.isFinite(longitude) ? longitude : -74.072;
+    return [
+      { id: 'destino', lat: safeLat, lng: safeLng, title: title || 'Ubicación', desc: description || '', color: '#2563eb', icon: '📍' },
+      ...markers.map((m) => ({
+        id: m.id,
+        lat: m.latitude,
+        lng: m.longitude,
+        title: m.title || 'Punto',
+        desc: m.description || '',
+        color: m.color || '#0f766e',
+        icon: m.kind === 'domiciliario' ? '🛵' : '📍',
+      })),
+    ];
   }, [latitude, longitude, title, description, markers]);
+
+  // HTML generado una sola vez (centro inicial)
+  const htmlContent = useMemo(
+    () => buildHtml(markersData[0].lat, markersData[0].lng),
+    [] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // Cada cambio de marcadores se envía a la WebView sin recargarla
+  useEffect(() => {
+    if (!ready) return;
+    const payload = JSON.stringify(markersData).replace(/</g, '\\u003c');
+    webViewRef.current?.injectJavaScript(
+      `window.setMarkers && window.setMarkers(${payload}); true;`
+    );
+  }, [markersData, ready]);
 
   return (
     <View
       style={[
         styles.container,
-        {
-          height,
-          borderColor: theme.colors.border,
-          backgroundColor: theme.colors.surfaceSecondary,
-        },
+        { height, borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceSecondary },
       ]}
     >
       <WebView
         ref={webViewRef}
         originWhitelist={['*']}
-        source={{ html: htmlContent }}
+        source={{ html: htmlContent, baseUrl: 'https://farma-ya.app' }}
+        onLoadEnd={() => setReady(true)}
         style={styles.map}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
+        javaScriptEnabled
+        domStorageEnabled
         scrollEnabled={false}
         overScrollMode="never"
         androidLayerType="hardware"
       />
 
-      {/* Botón flotante para abrir en OpenStreetMap / Maps */}
       <TouchableOpacity
-        style={[
-          styles.floatingBtn,
-          {
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.border,
-          },
-        ]}
+        style={[styles.floatingBtn, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
         onPress={handleOpenExternalMap}
         activeOpacity={0.85}
       >
         <Ionicons name="map-outline" size={13} color={theme.colors.primary} />
-        <Text style={[styles.floatingBtnText, { color: theme.colors.primary }]}>
-          OpenStreetMap
-        </Text>
+        <Text style={[styles.floatingBtnText, { color: theme.colors.primary }]}>OpenStreetMap</Text>
       </TouchableOpacity>
     </View>
   );

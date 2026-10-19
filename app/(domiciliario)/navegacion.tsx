@@ -82,7 +82,28 @@ export default function NavegacionScreen() {
   const [observacion, setObservacion] = useState('');
   const [evidenciaUri, setEvidenciaUri] = useState<string | null>(null);
   const [procesandoCheckpoint, setProcesandoCheckpoint] = useState(false);
+  const destLat = pedidoActivo?.direccionEntrega?.latitud;
+const destLng = pedidoActivo?.direccionEntrega?.longitud;
+const tieneDestino = Number.isFinite(destLat) && Number.isFinite(destLng);
 
+// useMemo evita reinyectar marcadores en cada render de la pantalla
+const marcadoresMapa = useMemo(
+  () =>
+    tieneDestino && ubicacion
+      ? [
+          {
+            id: 'domi',
+            latitude: ubicacion.latitud,
+            longitude: ubicacion.longitud,
+            title: 'Tú',
+            description: 'Domiciliario en ruta activa',
+            kind: 'domiciliario' as const,
+          },
+        ]
+      : [],
+  [tieneDestino, ubicacion]
+);
+  
   // Escuchar pedidos asignados al domiciliario
   useEffect(() => {
     if (!perfil?.uid) return;
