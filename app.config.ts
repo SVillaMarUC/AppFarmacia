@@ -4,7 +4,7 @@ const config: ExpoConfig = {
   name: 'FarmaYa',
   slug: 'farma-ya',
   owner: 'farma-team',
-  version: '1.0.0',
+  version: '2.0.0',
   scheme: 'farmaya',
   icon: './assets/icon.png',
   orientation: 'portrait',

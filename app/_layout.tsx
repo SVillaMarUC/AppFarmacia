@@ -100,7 +100,6 @@ function RootContent({ fontsLoaded, fontError }: { fontsLoaded: boolean; fontErr
     <>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={theme.colors.background}
       />
       <AuthProvider>
         <PedidoProvider>

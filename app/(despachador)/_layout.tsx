@@ -31,7 +31,7 @@ export default function DespachadorLayout() {
           options={{
             title: 'Inventario',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'layers' : 'layers-outline'} color={color} size={size ?? 24} />
+              <Ionicons name={focused ? 'layers' : 'layers-outline'} color={color as string} size={size ?? 24} />
             ),
           }}
         />
@@ -40,7 +40,7 @@ export default function DespachadorLayout() {
           options={{
             title: 'Despachar',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'send' : 'send-outline'} color={color} size={size ?? 24} />
+              <Ionicons name={focused ? 'send' : 'send-outline'} color={color as string} size={size ?? 24} />
             ),
           }}
         />
@@ -49,7 +49,7 @@ export default function DespachadorLayout() {
           options={{
             title: 'Perfil',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size ?? 24} />
+              <Ionicons name={focused ? 'person' : 'person-outline'} color={color as string} size={size ?? 24} />
             ),
           }}
         />

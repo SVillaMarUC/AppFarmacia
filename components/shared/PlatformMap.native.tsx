@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import type { PlatformMapProps } from './PlatformMap.types';
 
+const RNWebView = WebView as any;
+
 /**
  * Mapa nativo (Android / iOS): Leaflet + OpenStreetMap dentro de una WebView.
  * El HTML se carga una sola vez; los marcadores se actualizan vía injectJavaScript,
@@ -137,7 +139,7 @@ export const PlatformMap = ({
         { height, borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceSecondary },
       ]}
     >
-      <WebView
+      <RNWebView
         ref={webViewRef}
         originWhitelist={['*']}
         source={{ html: htmlContent, baseUrl: 'https://farma-ya.app' }}

@@ -31,7 +31,7 @@ export default function AdministradorLayout() {
           options={{
             title: 'Inicio',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'grid' : 'grid-outline'} color={color} size={size ?? 24} />
+              <Ionicons name={focused ? 'grid' : 'grid-outline'} color={color as string} size={size ?? 24} />
             ),
           }}
         />
@@ -40,7 +40,7 @@ export default function AdministradorLayout() {
           options={{
             title: 'Inventario',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'medkit' : 'medkit-outline'} color={color} size={size ?? 24} />
+              <Ionicons name={focused ? 'medkit' : 'medkit-outline'} color={color as string} size={size ?? 24} />
             ),
           }}
         />
@@ -49,7 +49,7 @@ export default function AdministradorLayout() {
           options={{
             title: 'Usuarios',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'people' : 'people-outline'} color={color} size={size ?? 24} />
+              <Ionicons name={focused ? 'people' : 'people-outline'} color={color as string} size={size ?? 24} />
             ),
           }}
         />
@@ -58,7 +58,7 @@ export default function AdministradorLayout() {
           options={{
             title: 'Reportes',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} color={color} size={size ?? 24} />
+              <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} color={color as string} size={size ?? 24} />
             ),
           }}
         />
@@ -67,7 +67,7 @@ export default function AdministradorLayout() {
           options={{
             title: 'PQRS',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'chatbubble' : 'chatbubble-outline'} color={color} size={size ?? 24} />
+              <Ionicons name={focused ? 'chatbubble' : 'chatbubble-outline'} color={color as string} size={size ?? 24} />
             ),
           }}
         />
@@ -76,7 +76,7 @@ export default function AdministradorLayout() {
           options={{
             title: 'Perfil',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size ?? 24} />
+              <Ionicons name={focused ? 'person' : 'person-outline'} color={color as string} size={size ?? 24} />
             ),
           }}
         />

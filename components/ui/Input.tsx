@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import type { TextInputSubmitEditingEventData, NativeSyntheticEvent } from 'react-native';
+import type { TextInputProps } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 
 type InputProps = {
@@ -14,7 +14,7 @@ type InputProps = {
   autoCorrect?: boolean;
   error?: string;
   maxLength?: number;
-  onSubmitEditing?: (e: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => void;
+  onSubmitEditing?: TextInputProps['onSubmitEditing'];
   blurOnSubmit?: boolean;
   returnKeyType?: 'done' | 'next' | 'go' | 'search' | 'send';
 };
