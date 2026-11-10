@@ -12,19 +12,23 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  console.error('[ErrorBoundary]', error);
+
   return (
-    <View style={styles.errorContainer}>
-      <Card>
-        <View style={styles.errorCard}>
-          <Ionicons name="alert-circle" size={48} color="#dc2626" />
-          <Text style={styles.errorTitulo}>Ocurrió un error inesperado</Text>
-          <Text style={styles.errorDetalle}>
-            {error?.message || 'Ha ocurrido un problema al renderizar la pantalla.'}
-          </Text>
-          <Button texto="Reintentar" onPress={retry} />
-        </View>
-      </Card>
-    </View>
+    <ThemeProvider>
+      <View style={styles.errorContainer}>
+        <Card>
+          <View style={styles.errorCard}>
+            <Ionicons name="alert-circle" size={48} color="#dc2626" />
+            <Text style={styles.errorTitulo}>Ocurrió un error inesperado</Text>
+            <Text style={styles.errorDetalle}>
+              {error?.message || 'Ha ocurrido un problema al renderizar la pantalla.'}
+            </Text>
+            <Button texto="Reintentar" onPress={retry} />
+          </View>
+        </Card>
+      </View>
+    </ThemeProvider>
   );
 }
 
@@ -73,15 +77,20 @@ const Guard = () => {
     }
   }, [loading, redirectTarget, pathname, router]);
 
-  if (loading) {
-    return <LoadingOverlay texto="Validando sesión..." />;
-  }
+  const mostrarOverlay = loading || (redirectTarget !== null && pathname !== redirectTarget);
 
-  if (redirectTarget && pathname !== redirectTarget) {
-    return <LoadingOverlay texto="Redirigiendo..." />;
-  }
-
-  return <Slot />;
+  // El <Slot /> se renderiza SIEMPRE para que el navegador no se desmonte
+  // mientras se valida la sesión o se redirige. El overlay se dibuja encima.
+  return (
+    <View style={styles.guardContainer}>
+      <Slot />
+      {mostrarOverlay ? (
+        <View style={StyleSheet.absoluteFill}>
+          <LoadingOverlay texto={loading ? 'Validando sesión...' : 'Redirigiendo...'} />
+        </View>
+      ) : null}
+    </View>
+  );
 };
 
 function RootContent({ fontsLoaded, fontError }: { fontsLoaded: boolean; fontError: Error | null }) {
@@ -125,6 +134,9 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  guardContainer: {
+    flex: 1,
+  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
